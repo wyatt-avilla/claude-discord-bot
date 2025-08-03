@@ -28,3 +28,5 @@ target
 result
 
 discord.token
+
+*.redb
