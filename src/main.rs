@@ -1,9 +1,11 @@
 mod arg_parse;
 mod database;
+mod discord;
 
 use clap::Parser;
 
-fn main() -> anyhow::Result<()> {
+#[tokio::main]
+async fn main() -> anyhow::Result<()> {
     let args = arg_parse::Args::parse();
 
     tracing_subscriber::fmt()
@@ -12,9 +14,8 @@ fn main() -> anyhow::Result<()> {
 
     let db_client = database::Client::new()?;
 
-    db_client.set_config(0, &database::Record::default())?;
-    let rec = db_client.get_config(0)?;
-    dbg!(rec);
+    let mut bot = discord::Bot::new(&args.discord_token_file, db_client).await?;
+    bot.run().await?;
 
     Ok(())
 }
