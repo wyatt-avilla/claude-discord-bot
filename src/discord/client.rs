@@ -26,7 +26,12 @@ impl Bot {
         let intents = serenity::GatewayIntents::non_privileged();
         let framework = poise::Framework::builder()
             .options(poise::FrameworkOptions {
-                commands: vec![super::command::age(), super::command::get_config()],
+                commands: vec![
+                    super::command::age(),
+                    super::command::get_config(),
+                    super::command::set_api_key(),
+                    super::command::set_random_interaction_chance(),
+                ],
                 ..Default::default()
             })
             .setup(|ctx, _ready, framework| {
