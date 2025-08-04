@@ -1,4 +1,5 @@
 mod arg_parse;
+mod claude;
 mod database;
 mod discord;
 

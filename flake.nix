@@ -33,7 +33,13 @@
       in
       {
         devShells.default = pkgs.mkShell {
-          nativeBuildInputs = nativeRustToolchain ++ (with pkgs; [ rust-analyzer ]);
+          nativeBuildInputs =
+            nativeRustToolchain
+            ++ (with pkgs; [
+              rust-analyzer
+              openssl
+              pkg-config
+            ]);
           buildInputs = [ ];
         };
 
@@ -50,8 +56,17 @@
             cargo test
           '';
 
-          nativeBuildInputs = nativeRustToolchain;
-          buildInputs = [ ];
+          nativeBuildInputs =
+            nativeRustToolchain
+            ++ (with pkgs; [
+              openssl
+              pkg-config
+            ]);
+
+          buildInputs = with pkgs; [
+            openssl
+            pkg-config
+          ];
         };
 
         checks = {
