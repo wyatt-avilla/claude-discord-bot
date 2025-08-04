@@ -27,7 +27,7 @@ impl Display for Record {
             if key.len() <= 4 {
                 key.clone()
             } else {
-                "*".repeat(key.len() - 4) + &key[key.len() - 4..]
+                "\\*".repeat(key.len() - 4) + &key[key.len() - 4..]
             }
         });
 
