@@ -1,21 +1,7 @@
 use std::num::NonZeroU64;
 
-use poise::serenity_prelude as serenity;
-
 type CommandError = Box<dyn std::error::Error + Send + Sync>;
 type Context<'a> = poise::Context<'a, super::client::CustomData, CommandError>;
-
-/// Displays your or another user's account creation date
-#[poise::command(slash_command, prefix_command)]
-pub async fn age(
-    ctx: Context<'_>,
-    #[description = "Selected user"] user: Option<serenity::User>,
-) -> Result<(), CommandError> {
-    let u = user.as_ref().unwrap_or_else(|| ctx.author());
-    let response = format!("{}'s account was created at {}", u.name, u.created_at());
-    ctx.say(response).await?;
-    Ok(())
-}
 
 /// Displays your server's config
 #[poise::command(slash_command, prefix_command)]
