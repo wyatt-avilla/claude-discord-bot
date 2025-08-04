@@ -1,5 +1,7 @@
 use std::num::NonZeroU64;
 
+use poise::serenity_prelude as serenity;
+
 type CommandError = Box<dyn std::error::Error + Send + Sync>;
 type Context<'a> = poise::Context<'a, super::client::CustomData, CommandError>;
 
@@ -44,7 +46,7 @@ pub async fn set_api_key(
 #[poise::command(slash_command, prefix_command)]
 pub async fn set_random_interaction_chance(
     ctx: Context<'_>,
-    #[description = "The denominator for the `1/denominator` chance that Claude reacts on a per-message basis."]
+    #[description = "The denominator for the `1/denominator` chance that Claude reacts on a per-message basis"]
     denominator: NonZeroU64,
 ) -> Result<(), CommandError> {
     let Some(guild_id) = ctx.guild_id() else {
@@ -55,6 +57,25 @@ pub async fn set_random_interaction_chance(
     ctx.data()
         .db
         .set_random_interaction_denominator(guild_id.get(), denominator)?;
+
+    Ok(())
+}
+
+/// Add a channel id to the list of Claude's active channels
+#[poise::command(slash_command, prefix_command)]
+pub async fn add_active_channel_id(
+    ctx: Context<'_>,
+    #[description = "The channel ID. You can right click on a channel to find its ID."]
+    channel_id: serenity::ChannelId,
+) -> Result<(), CommandError> {
+    let Some(guild_id) = ctx.guild_id() else {
+        ctx.say("Couldn't get server id").await?;
+        return Ok(());
+    };
+
+    ctx.data()
+        .db
+        .add_active_channel_id(guild_id.get(), channel_id.get())?;
 
     Ok(())
 }

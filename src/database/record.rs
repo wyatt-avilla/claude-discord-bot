@@ -2,12 +2,13 @@ use bincode::{self, Decode, Encode};
 use itertools::Itertools;
 use redb::Value;
 use serde::{Deserialize, Serialize};
-use std::{fmt::Display, num::NonZeroU64};
+use std::{collections::HashSet, fmt::Display, num::NonZeroU64};
 
 #[derive(Debug, Serialize, Deserialize, Decode, Encode, Default)]
 pub struct Record {
     pub claude_api_key: Option<String>,
     pub random_interaction_chance_denominator: Option<NonZeroU64>,
+    pub active_channel_ids: HashSet<u64>,
 }
 
 impl Record {
@@ -34,6 +35,13 @@ impl Display for Record {
             .random_interaction_chance_denominator
             .map(|denom| format!("1/{denom}"));
 
+        let active_channel_ids = self
+            .active_channel_ids
+            .clone()
+            .iter()
+            .map(std::string::ToString::to_string)
+            .join(", ");
+
         let lines = vec![
             format!(
                 "Claude API key: {}",
@@ -43,6 +51,7 @@ impl Display for Record {
                 "Interaction chance: {}",
                 interaction_chance.unwrap_or(unset)
             ),
+            format!("Active channel ids: [{}]", active_channel_ids),
         ];
 
         f.write_str(lines.into_iter().join("\n").as_str())

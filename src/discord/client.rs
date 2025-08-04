@@ -27,10 +27,10 @@ impl Bot {
         let framework = poise::Framework::builder()
             .options(poise::FrameworkOptions {
                 commands: vec![
-                    super::command::age(),
                     super::command::get_config(),
                     super::command::set_api_key(),
                     super::command::set_random_interaction_chance(),
+                    super::command::add_active_channel_id(),
                 ],
                 ..Default::default()
             })

@@ -86,6 +86,16 @@ impl Client {
         })
     }
 
+    pub fn add_active_channel_id(
+        &self,
+        server_id: u64,
+        channel_id: u64,
+    ) -> Result<(), DatabaseClientError> {
+        self.modify_config(server_id, move |rec| {
+            rec.active_channel_ids.insert(channel_id);
+        })
+    }
+
     fn modify_config<F>(&self, server_id: u64, update_config: F) -> Result<(), DatabaseClientError>
     where
         F: FnOnce(&mut Record),
