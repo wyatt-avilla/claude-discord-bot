@@ -6,8 +6,8 @@ use std::{fmt::Display, num::NonZeroU64};
 
 #[derive(Debug, Serialize, Deserialize, Decode, Encode, Default)]
 pub struct Record {
-    claude_api_key: Option<String>,
-    random_interaction_chance_denominator: Option<NonZeroU64>,
+    pub claude_api_key: Option<String>,
+    pub random_interaction_chance_denominator: Option<NonZeroU64>,
 }
 
 impl Record {
