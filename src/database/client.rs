@@ -61,8 +61,7 @@ impl Client {
         Ok(table
             .get(server_id)
             .map_err(DatabaseClientError::Read)?
-            .map(|a| a.value())
-            .unwrap_or(Record::default()))
+            .map_or(Record::default(), |a| a.value()))
     }
 
     pub fn set_config(&self, server_id: u64, config: &Record) -> Result<(), DatabaseClientError> {
