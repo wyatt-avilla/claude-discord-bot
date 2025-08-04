@@ -3,6 +3,7 @@ use thiserror::Error;
 
 pub struct CustomData {
     pub db: crate::database::Client,
+    pub claude: crate::claude::Client,
 }
 
 pub struct Bot {
@@ -22,6 +23,7 @@ impl Bot {
     pub async fn new(
         discord_token: &str,
         database_client: crate::database::Client,
+        claude_client: crate::claude::Client,
     ) -> Result<Bot, DiscordBotError> {
         let intents =
             serenity::GatewayIntents::non_privileged() | serenity::GatewayIntents::MESSAGE_CONTENT;
@@ -47,6 +49,7 @@ impl Bot {
                     poise::builtins::register_globally(ctx, &framework.options().commands).await?;
                     Ok(CustomData {
                         db: database_client,
+                        claude: claude_client,
                     })
                 })
             })

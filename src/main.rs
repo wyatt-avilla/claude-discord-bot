@@ -15,7 +15,9 @@ async fn main() -> anyhow::Result<()> {
 
     let db_client = database::Client::new()?;
 
-    let mut bot = discord::Bot::new(&args.discord_token_file, db_client).await?;
+    let claude_client = claude::Client::default();
+
+    let mut bot = discord::Bot::new(&args.discord_token_file, db_client, claude_client).await?;
     bot.run().await?;
 
     Ok(())
