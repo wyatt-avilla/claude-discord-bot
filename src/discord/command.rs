@@ -89,3 +89,18 @@ pub async fn add_active_channel_id(
 
     Ok(())
 }
+
+/// Clears the set of active channel IDs
+#[poise::command(slash_command, prefix_command)]
+pub async fn clear_active_channels(ctx: Context<'_>) -> Result<(), CommandError> {
+    let Some(guild_id) = ctx.guild_id() else {
+        ctx.say("Couldn't get server id").await?;
+        return Ok(());
+    };
+
+    ctx.data().db.clear_active_channel_ids(guild_id.get())?;
+
+    ctx.say("Cleared the set of active channel ids").await?;
+
+    Ok(())
+}

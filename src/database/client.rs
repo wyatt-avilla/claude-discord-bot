@@ -96,6 +96,12 @@ impl Client {
         })
     }
 
+    pub fn clear_active_channel_ids(&self, server_id: u64) -> Result<(), DatabaseClientError> {
+        self.modify_config(server_id, move |rec| {
+            rec.active_channel_ids.clear();
+        })
+    }
+
     fn modify_config<F>(&self, server_id: u64, update_config: F) -> Result<(), DatabaseClientError>
     where
         F: FnOnce(&mut Record),
