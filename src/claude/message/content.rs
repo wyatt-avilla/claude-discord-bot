@@ -1,30 +1,32 @@
 use serde::{Serialize, Serializer};
 
-#[derive(Serialize)]
+#[derive(Serialize, Debug)]
 #[serde(untagged)]
 pub enum Content {
     Text(String),
     ContentBlocks(Vec<ContentBlock>),
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, Debug)]
 #[serde(untagged)]
 pub enum ContentBlock {
     Text(TextBlock),
     ImageBlock(ImageBlock),
 }
 
+#[derive(Debug)]
 pub struct TextBlock {
     pub text: String,
 }
 
+#[derive(Debug)]
 pub struct ImageBlock {
     pub media_type: MediaType,
     // TODO: Base64T?
     pub data: String,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, Debug)]
 pub enum MediaType {
     #[serde(rename = "image/jpeg")]
     Jpeg,
