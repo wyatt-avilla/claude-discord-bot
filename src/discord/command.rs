@@ -2,7 +2,7 @@ use std::num::NonZeroU64;
 
 use poise::serenity_prelude as serenity;
 
-type CommandError = Box<dyn std::error::Error + Send + Sync>;
+pub type CommandError = Box<dyn std::error::Error + Send + Sync>;
 type Context<'a> = poise::Context<'a, super::client::CustomData, CommandError>;
 
 /// Displays your server's config

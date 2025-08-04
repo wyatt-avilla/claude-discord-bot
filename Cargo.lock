@@ -322,6 +322,7 @@ dependencies = [
  "bincode",
  "clap",
  "itertools",
+ "log",
  "poise",
  "redb",
  "serde",

@@ -23,9 +23,16 @@ impl Bot {
         discord_token: &str,
         database_client: crate::database::Client,
     ) -> Result<Bot, DiscordBotError> {
-        let intents = serenity::GatewayIntents::non_privileged();
+        let intents =
+            serenity::GatewayIntents::non_privileged() | serenity::GatewayIntents::MESSAGE_CONTENT;
+
         let framework = poise::Framework::builder()
             .options(poise::FrameworkOptions {
+                event_handler: |ctx, event, framework, data| {
+                    Box::pin(super::event_handler::event_handler(
+                        ctx, event, framework, data,
+                    ))
+                },
                 commands: vec![
                     super::command::get_config(),
                     super::command::set_api_key(),
