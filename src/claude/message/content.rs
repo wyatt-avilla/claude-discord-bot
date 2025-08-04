@@ -38,6 +38,20 @@ pub enum MediaType {
     Webp,
 }
 
+impl TryFrom<&str> for MediaType {
+    type Error = String;
+
+    fn try_from(value: &str) -> Result<Self, Self::Error> {
+        match value {
+            "image/jpeg" => Ok(MediaType::Jpeg),
+            "image/png" => Ok(MediaType::Png),
+            "image/gif" => Ok(MediaType::Gif),
+            "image/webp" => Ok(MediaType::Webp),
+            _ => Err(format!("Unsupported media type '{value}'")),
+        }
+    }
+}
+
 impl Serialize for TextBlock {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
