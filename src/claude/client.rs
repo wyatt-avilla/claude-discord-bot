@@ -10,6 +10,15 @@ pub struct Client {
     max_tokens: NonZeroU64,
 }
 
+impl Client {
+    pub fn new(model: Model) -> Self {
+        Self {
+            model,
+            ..Default::default()
+        }
+    }
+}
+
 impl Default for Client {
     fn default() -> Self {
         Self {

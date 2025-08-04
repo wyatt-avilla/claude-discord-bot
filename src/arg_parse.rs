@@ -1,5 +1,6 @@
 use std::{io::Read, path::PathBuf};
 
+use crate::claude;
 use clap::Parser;
 
 fn validate_nonempty_readable_token_file(s: &str) -> Result<String, String> {
@@ -37,6 +38,10 @@ pub struct Args {
     /// Path to file containing (only) a Discord token
     #[arg(short('t'), long, value_parser = validate_nonempty_readable_token_file)]
     pub discord_token_file: String,
+
+    /// Claude model to use for the bot
+    #[arg(long, default_value_t = claude::Model::Sonnet4)]
+    pub model: claude::Model,
 
     /// Log level, one of (INFO, WARN, ERROR, DEBUG, TRACE)
     #[arg(short, long, default_value_t = tracing::Level::INFO)]
