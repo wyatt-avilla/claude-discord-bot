@@ -39,6 +39,8 @@ pub async fn set_api_key(
 
     ctx.data().db.set_claude_api_key(guild_id.get(), &api_key)?;
 
+    ctx.say("API key set").await?;
+
     Ok(())
 }
 
@@ -58,6 +60,9 @@ pub async fn set_random_interaction_chance(
         .db
         .set_random_interaction_denominator(guild_id.get(), denominator)?;
 
+    ctx.say(format!("Interaction chance set to 1/{denominator}"))
+        .await?;
+
     Ok(())
 }
 
@@ -76,6 +81,11 @@ pub async fn add_active_channel_id(
     ctx.data()
         .db
         .add_active_channel_id(guild_id.get(), channel_id.get())?;
+
+    ctx.say(format!("Added `{}` to the list of active channel ids", {
+        channel_id.get()
+    }))
+    .await?;
 
     Ok(())
 }
