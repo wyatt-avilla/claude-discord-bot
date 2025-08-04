@@ -79,10 +79,10 @@ impl Client {
     pub fn set_random_interaction_denominator(
         &self,
         server_id: u64,
-        denominator: NonZeroU64,
+        denominator: Option<NonZeroU64>,
     ) -> Result<(), DatabaseClientError> {
         self.modify_config(server_id, move |rec| {
-            rec.random_interaction_chance_denominator = Some(denominator);
+            rec.random_interaction_chance_denominator = denominator;
         })
     }
 
