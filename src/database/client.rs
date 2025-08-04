@@ -49,7 +49,7 @@ impl Client {
         Ok(Self { db })
     }
 
-    pub fn get_config(&self, server_id: u64) -> Result<Option<Record>, DatabaseClientError> {
+    pub fn get_config(&self, server_id: u64) -> Result<Record, DatabaseClientError> {
         let read_txn = self
             .db
             .begin_read()
@@ -61,7 +61,8 @@ impl Client {
         Ok(table
             .get(server_id)
             .map_err(DatabaseClientError::Read)?
-            .map(|a| a.value()))
+            .map(|a| a.value())
+            .unwrap_or(Record::default()))
     }
 
     pub fn set_config(&self, server_id: u64, config: &Record) -> Result<(), DatabaseClientError> {

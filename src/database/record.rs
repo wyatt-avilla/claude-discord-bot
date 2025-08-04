@@ -1,7 +1,8 @@
 use bincode::{self, Decode, Encode};
+use itertools::Itertools;
 use redb::Value;
 use serde::{Deserialize, Serialize};
-use std::num::NonZeroU64;
+use std::{fmt::Display, num::NonZeroU64};
 
 #[derive(Debug, Serialize, Deserialize, Decode, Encode, Default)]
 pub struct Record {
@@ -14,6 +15,37 @@ impl Record {
         bincode::config::standard()
             .with_little_endian()
             .with_variable_int_encoding()
+    }
+}
+
+impl Display for Record {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let unset = String::from("**Not Set**");
+
+        let claude_api_key = &self.claude_api_key.as_ref().map(|key| {
+            if key.len() <= 4 {
+                key.clone()
+            } else {
+                "*".repeat(key.len() - 4) + &key[key.len() - 4..]
+            }
+        });
+
+        let interaction_chance = self
+            .random_interaction_chance_denominator
+            .map(|denom| format!("1/{denom}"));
+
+        let lines = vec![
+            format!(
+                "Claude API key: {}",
+                claude_api_key.clone().unwrap_or(unset.clone())
+            ),
+            format!(
+                "Interaction chance: {}",
+                interaction_chance.unwrap_or(unset)
+            ),
+        ];
+
+        f.write_str(lines.into_iter().join("\n").as_str())
     }
 }
 

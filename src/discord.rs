@@ -33,6 +33,27 @@ async fn age(
     Ok(())
 }
 
+/// Displays your server's config
+#[poise::command(slash_command, prefix_command)]
+async fn get_config(ctx: Context<'_>) -> Result<(), CommandError> {
+    let Some(guild_id) = ctx.guild_id() else {
+        ctx.say("Couldn't get server id").await?;
+        return Ok(());
+    };
+
+    let config = match ctx.data().db.get_config(guild_id.get()) {
+        Ok(cfg) => cfg,
+        Err(e) => {
+            ctx.say(format!("Couldn't fetch server config ({e})"))
+                .await?;
+            return Ok(());
+        }
+    };
+
+    ctx.say(config.to_string()).await?;
+    Ok(())
+}
+
 impl Bot {
     pub async fn new(
         discord_token: &str,
