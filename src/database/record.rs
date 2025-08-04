@@ -35,12 +35,14 @@ impl Display for Record {
             .random_interaction_chance_denominator
             .map(|denom| format!("1/{denom}"));
 
-        let active_channel_ids = self
-            .active_channel_ids
-            .clone()
-            .iter()
-            .map(std::string::ToString::to_string)
-            .join(", ");
+        let active_channel_ids = format!(
+            "[{}]",
+            self.active_channel_ids
+                .clone()
+                .iter()
+                .map(std::string::ToString::to_string)
+                .join(", ")
+        );
 
         let lines = vec![
             format!(
@@ -49,9 +51,16 @@ impl Display for Record {
             ),
             format!(
                 "Interaction chance: {}",
-                interaction_chance.unwrap_or(unset)
+                interaction_chance.unwrap_or(unset.clone())
             ),
-            format!("Active channel ids: [{}]", active_channel_ids),
+            format!(
+                "Active channel ids: {}",
+                if active_channel_ids.is_empty() {
+                    unset.clone()
+                } else {
+                    active_channel_ids
+                }
+            ),
         ];
 
         f.write_str(lines.into_iter().join("\n").as_str())
