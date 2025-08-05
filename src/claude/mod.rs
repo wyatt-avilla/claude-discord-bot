@@ -1,6 +1,7 @@
 mod client;
 mod message;
 mod model;
+mod request;
 mod system_prompt;
 mod tools;
 
