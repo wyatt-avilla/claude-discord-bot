@@ -1,4 +1,5 @@
 use crate::claude;
+use itertools::Itertools;
 
 use super::client::CustomData;
 use super::command::CommandError;
@@ -38,11 +39,17 @@ pub async fn handle_message(
             .random_interaction_chance_denominator
             .is_some_and(|d| rand::rng().random_range(1..=d.into()) == 1)
     {
-        let builder = GetMessages::new().before(msg.id).limit(15);
-        let messages = msg.channel_id.messages(ctx, builder).await?;
         let Some(api_key) = server_config.claude_api_key else {
             return Ok(());
         };
+
+        let messages = std::iter::once(msg.clone())
+            .chain(
+                msg.channel_id
+                    .messages(ctx, GetMessages::new().before(msg.id).limit(15))
+                    .await?,
+            )
+            .collect_vec();
 
         let resp = match custom_data
             .claude
