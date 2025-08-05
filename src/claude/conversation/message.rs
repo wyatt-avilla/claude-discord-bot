@@ -1,6 +1,7 @@
 use super::{ContentBlock, ImageBlock, TextBlock};
 use crate::discord::NormalizeContent;
 
+use itertools::Itertools;
 use poise::serenity_prelude as serenity;
 
 use super::{Content, Role};
@@ -48,11 +49,20 @@ impl Message {
 
         let message_text = Message::format_message(discord_message);
 
-        let imgs: Vec<ImageBlock> = discord_message
+        let attached_images = discord_message
             .attachments
             .iter()
-            .map(|a| ImageBlock { url: a.url.clone() })
-            .collect();
+            .map(|a| ImageBlock { url: a.url.clone() });
+
+        let embedded_images = discord_message
+            .embeds
+            .iter()
+            .filter_map(|e| e.image.as_ref())
+            .map(|ei| ImageBlock {
+                url: ei.url.clone(),
+            });
+
+        let imgs = attached_images.chain(embedded_images).collect_vec();
 
         if imgs.is_empty() {
             Message {
