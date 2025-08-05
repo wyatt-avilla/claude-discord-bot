@@ -1,8 +1,5 @@
-use super::MediaType;
 use super::{ContentBlock, ImageBlock, TextBlock};
 use crate::discord::NormalizeContent;
-use base64::{Engine as _, engine::general_purpose};
-use futures::future::join_all;
 
 use poise::serenity_prelude as serenity;
 
@@ -42,7 +39,7 @@ impl Message {
         }
     }
 
-    pub async fn from(discord_message: &serenity::Message, context: &serenity::Context) -> Self {
+    pub fn from(discord_message: &serenity::Message, context: &serenity::Context) -> Self {
         let role = if discord_message.author.id == context.cache.current_user().id {
             Role::Assistant
         } else {
@@ -51,21 +48,10 @@ impl Message {
 
         let message_text = Message::format_message(discord_message);
 
-        let image_futures = discord_message.attachments.iter().map(|a| async move {
-            let media_type: MediaType = a.content_type.clone()?.as_str().try_into().ok()?;
-            let img_bytes = a.download().await.ok()?;
-            let b64 = general_purpose::STANDARD.encode(&img_bytes);
-
-            Some(ImageBlock {
-                media_type,
-                data: b64,
-            })
-        });
-
-        let imgs: Vec<ImageBlock> = join_all(image_futures)
-            .await
-            .into_iter()
-            .flatten()
+        let imgs: Vec<ImageBlock> = discord_message
+            .attachments
+            .iter()
+            .map(|a| ImageBlock { url: a.url.clone() })
             .collect();
 
         if imgs.is_empty() {

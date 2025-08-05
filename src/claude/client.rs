@@ -2,7 +2,7 @@ use super::model::Model;
 use super::response::Response;
 use super::system_prompt::SYSTEM_PROMPT;
 use super::tools::ToolDefinition;
-use futures::future::join_all;
+use itertools::Itertools;
 use std::num::NonZeroU64;
 use thiserror::Error;
 
@@ -41,11 +41,10 @@ impl Client {
         ctx: &serenity::Context,
         api_key: &str,
     ) -> Result<Response, ClaudeError> {
-        let msgs = join_all(
-            msgs.into_iter()
-                .map(async move |m| super::Message::from(&m, ctx).await),
-        )
-        .await;
+        let msgs = msgs
+            .into_iter()
+            .map(|m| super::Message::from(&m, ctx))
+            .collect_vec();
 
         let request = super::Request::new(
             self.model.clone(),

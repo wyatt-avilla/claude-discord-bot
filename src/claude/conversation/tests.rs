@@ -49,8 +49,7 @@ fn one_image_message() {
     let msgs = serde_json::to_value(vec![Message {
         role: Role::User,
         content: Content::ContentBlocks(vec![ContentBlock::ImageBlock(ImageBlock {
-            media_type: MediaType::Jpeg,
-            data: "base64_encoded_string".to_string(),
+            url: "url goes here".to_string(),
         })]),
     }])
     .unwrap();
@@ -62,9 +61,8 @@ fn one_image_message() {
             {
               "type": "image",
               "source": {
-                "type": "base64",
-                "media_type": "image/jpeg",
-                "data": "base64_encoded_string",
+                "type": "url",
+                "url": "url goes here",
               },
             }
           ],
@@ -80,15 +78,13 @@ fn two_image_messages() {
         Message {
             role: Role::User,
             content: Content::ContentBlocks(vec![ContentBlock::ImageBlock(ImageBlock {
-                media_type: MediaType::Jpeg,
-                data: "base64_encoded_string".to_string(),
+                url: "url goes here".to_string(),
             })]),
         },
         Message {
             role: Role::User,
             content: Content::ContentBlocks(vec![ContentBlock::ImageBlock(ImageBlock {
-                media_type: MediaType::Png,
-                data: "base64_encoded_string2".to_string(),
+                url: "url goes here".to_string(),
             })]),
         },
     ])
@@ -101,9 +97,8 @@ fn two_image_messages() {
             {
               "type": "image",
               "source": {
-                "type": "base64",
-                "media_type": "image/jpeg",
-                "data": "base64_encoded_string",
+                "type": "url",
+                "url": "url goes here",
               },
             }
           ],
@@ -114,9 +109,8 @@ fn two_image_messages() {
             {
               "type": "image",
               "source": {
-                "type": "base64",
-                "media_type": "image/png",
-                "data": "base64_encoded_string2",
+                "type": "url",
+                "url": "url goes here",
               },
             }
           ],
@@ -132,12 +126,10 @@ fn one_message_two_content_blocks() {
         role: Role::User,
         content: Content::ContentBlocks(vec![
             ContentBlock::ImageBlock(ImageBlock {
-                media_type: MediaType::Gif,
-                data: "base64_encoded_string1".to_string(),
+                url: "url goes here".to_string(),
             }),
             ContentBlock::ImageBlock(ImageBlock {
-                media_type: MediaType::Webp,
-                data: "base64_encoded_string2".to_string(),
+                url: "url goes here".to_string(),
             }),
         ]),
     }])
@@ -150,17 +142,15 @@ fn one_message_two_content_blocks() {
             {
               "type": "image",
               "source": {
-                "type": "base64",
-                "media_type": "image/gif",
-                "data": "base64_encoded_string1",
+                "type": "url",
+                "url": "url goes here",
               },
             },
             {
               "type": "image",
               "source": {
-                "type": "base64",
-                "media_type": "image/webp",
-                "data": "base64_encoded_string2",
+                "type": "url",
+                "url": "url goes here",
               },
             }
           ],
@@ -176,8 +166,7 @@ fn mixed_content_type() {
         role: Role::User,
         content: Content::ContentBlocks(vec![
             ContentBlock::ImageBlock(ImageBlock {
-                media_type: MediaType::Jpeg,
-                data: "base64_encoded_string".to_string(),
+                url: "url goes here".to_string(),
             }),
             ContentBlock::Text(TextBlock {
                 text: "this is text".to_string(),
@@ -193,9 +182,8 @@ fn mixed_content_type() {
             {
               "type": "image",
               "source": {
-                "type": "base64",
-                "media_type": "image/jpeg",
-                "data": "base64_encoded_string",
+                "type": "url",
+                "url": "url goes here",
               },
             },
             {

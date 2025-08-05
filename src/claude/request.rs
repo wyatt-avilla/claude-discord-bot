@@ -44,9 +44,7 @@ mod tests {
     use super::Model;
     use super::Request;
     use super::ToolDefinition;
-    use crate::claude::conversation::{
-        Content, ContentBlock, ImageBlock, MediaType, Role, TextBlock,
-    };
+    use crate::claude::conversation::{Content, ContentBlock, ImageBlock, Role, TextBlock};
 
     #[test]
     fn one_tool_one_message() {
@@ -109,8 +107,7 @@ mod tests {
                         text: "hello text block".to_string(),
                     }),
                     ContentBlock::ImageBlock(ImageBlock {
-                        media_type: MediaType::Gif,
-                        data: "base 64 string".to_string(),
+                        url: "url goes here".to_string(),
                     }),
                 ]),
             }],
@@ -163,9 +160,8 @@ mod tests {
                   {
                     "type": "image",
                     "source": {
-                      "type": "base64",
-                      "media_type": "image/gif",
-                      "data": "base 64 string"
+                      "type": "url",
+                      "url": "url goes here"
                     },
                   },
                 ],
