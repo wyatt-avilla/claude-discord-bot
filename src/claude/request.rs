@@ -2,6 +2,8 @@ use super::Message;
 use super::Tool;
 use super::model::Model;
 use serde::Serialize;
+use serde_json::Value;
+use serde_json::json;
 use std::num::NonZeroU64;
 
 #[derive(Debug, Serialize)]
@@ -9,7 +11,7 @@ pub struct Request {
     model: Model,
     system: String,
     max_tokens: NonZeroU64,
-    tool_choice: String,
+    tool_choice: Value,
     tools: Vec<Tool>,
     messages: Vec<Message>,
 }
@@ -26,7 +28,7 @@ impl Request {
             model,
             system: system_prompt,
             max_tokens,
-            tool_choice: "any".to_string(),
+            tool_choice: json!({"type": "any"}),
             tools,
             messages,
         }
@@ -52,7 +54,7 @@ mod tests {
             model: Model::Sonnet4,
             system: "system prompt".to_string(),
             max_tokens: NonZeroU64::new(1024).unwrap(),
-            tool_choice: "any".to_string(),
+            tool_choice: json!({"type": "any"}),
             tools: vec![skip_response_tool],
             messages: vec![Message {
                 role: Role::User,
@@ -65,7 +67,7 @@ mod tests {
             "model": "claude-sonnet-4-0",
             "system": "system prompt",
             "max_tokens": 1024,
-            "tool_choice": "any",
+            "tool_choice": {"type": "any"},
             "tools": [
               {
                 "name": "skip_response",
@@ -96,7 +98,7 @@ mod tests {
             model: Model::Sonnet37,
             system: "complicated system prompt".to_string(),
             max_tokens: NonZeroU64::new(1024).unwrap(),
-            tool_choice: "any".to_string(),
+            tool_choice: json!({"type": "any"}),
             tools: message_and_react_tools.collect(),
             messages: vec![Message {
                 role: Role::User,
@@ -117,7 +119,7 @@ mod tests {
             "model": "claude-3-7-sonnet-latest",
             "system": "complicated system prompt",
             "max_tokens": 1024,
-            "tool_choice": "any",
+            "tool_choice": {"type": "any"},
             "tools": [
               {
                 "name": "send_message",
