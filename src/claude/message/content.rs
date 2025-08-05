@@ -22,7 +22,6 @@ pub struct TextBlock {
 #[derive(Debug)]
 pub struct ImageBlock {
     pub media_type: MediaType,
-    // TODO: Base64T?
     pub data: String,
 }
 
