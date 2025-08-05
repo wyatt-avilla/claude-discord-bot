@@ -1,5 +1,5 @@
 mod client;
-mod message;
+mod conversation;
 mod model;
 mod request;
 mod response;
@@ -7,7 +7,7 @@ mod system_prompt;
 mod tools;
 
 pub use client::Client;
-pub use message::Message;
+pub use conversation::Message;
 pub use model::Model;
 pub use request::Request;
 pub use response::{Action, StopReason};

@@ -44,7 +44,9 @@ mod tests {
     use super::Model;
     use super::Request;
     use super::ToolDefinition;
-    use crate::claude::message::{Content, ContentBlock, ImageBlock, MediaType, Role, TextBlock};
+    use crate::claude::conversation::{
+        Content, ContentBlock, ImageBlock, MediaType, Role, TextBlock,
+    };
 
     #[test]
     fn one_tool_one_message() {

@@ -1,8 +1,6 @@
 use super::MediaType;
-use crate::{
-    claude::message::{ContentBlock, ImageBlock, TextBlock},
-    discord::NormalizeContent,
-};
+use super::{ContentBlock, ImageBlock, TextBlock};
+use crate::discord::NormalizeContent;
 use base64::{Engine as _, engine::general_purpose};
 use futures::future::join_all;
 
