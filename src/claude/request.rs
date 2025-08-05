@@ -8,6 +8,8 @@ use std::num::NonZeroU64;
 pub struct Request {
     model: Model,
     system: String,
+    #[serde(rename = "anthropic-version")]
+    anthropic_version: String,
     max_tokens: NonZeroU64,
     tool_choice: String,
     tools: Vec<Tool>,
@@ -18,6 +20,7 @@ impl Request {
     pub fn new(
         model: Model,
         system_prompt: String,
+        anthropic_version: String,
         max_tokens: NonZeroU64,
         tools: Vec<Tool>,
         messages: Vec<Message>,
@@ -25,6 +28,7 @@ impl Request {
         Self {
             model,
             system: system_prompt,
+            anthropic_version,
             max_tokens,
             tool_choice: "any".to_string(),
             tools,
@@ -50,6 +54,7 @@ mod tests {
 
         let request = serde_json::to_value(Request {
             model: Model::Sonnet4,
+            anthropic_version: "2023-06-01".to_string(),
             system: "system prompt".to_string(),
             max_tokens: NonZeroU64::new(1024).unwrap(),
             tool_choice: "any".to_string(),
@@ -64,6 +69,7 @@ mod tests {
         let json = json!({
             "model": "claude-sonnet-4-0",
             "system": "system prompt",
+            "anthropic-version": "2023-06-01",
             "max_tokens": 1024,
             "tool_choice": "any",
             "tools": [
@@ -94,6 +100,7 @@ mod tests {
 
         let request = serde_json::to_value(Request {
             model: Model::Sonnet37,
+            anthropic_version: "2023-06-01".to_string(),
             system: "complicated system prompt".to_string(),
             max_tokens: NonZeroU64::new(1024).unwrap(),
             tool_choice: "any".to_string(),
@@ -115,6 +122,7 @@ mod tests {
 
         let json = json!({
             "model": "claude-3-7-sonnet-latest",
+            "anthropic-version": "2023-06-01",
             "system": "complicated system prompt",
             "max_tokens": 1024,
             "tool_choice": "any",
