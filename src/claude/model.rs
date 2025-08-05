@@ -1,4 +1,5 @@
 use clap::ValueEnum;
+use serde::Serialize;
 use std::fmt::Display;
 
 #[derive(Clone, Debug, ValueEnum)]
@@ -31,5 +32,14 @@ impl Model {
 impl Display for Model {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_str(self.to_possible_value().unwrap().get_name())
+    }
+}
+
+impl Serialize for Model {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        serializer.serialize_str(&self.id())
     }
 }
