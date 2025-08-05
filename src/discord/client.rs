@@ -1,4 +1,4 @@
-use poise::serenity_prelude as serenity;
+use poise::{PrefixFrameworkOptions, serenity_prelude as serenity};
 use thiserror::Error;
 
 pub struct CustomData {
@@ -34,6 +34,10 @@ impl Bot {
                     Box::pin(super::event_handler::event_handler(
                         ctx, event, framework, data,
                     ))
+                },
+                prefix_options: PrefixFrameworkOptions {
+                    mention_as_prefix: false,
+                    ..Default::default()
                 },
                 commands: vec![
                     super::command::get_config(),
