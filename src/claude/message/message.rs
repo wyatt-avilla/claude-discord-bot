@@ -13,8 +13,8 @@ use serde::Serialize;
 
 #[derive(Serialize, Debug)]
 pub struct Message {
-    role: Role,
-    content: Content,
+    pub role: Role,
+    pub content: Content,
 }
 
 impl Message {
