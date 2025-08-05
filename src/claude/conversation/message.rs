@@ -60,13 +60,17 @@ impl Message {
             }
         });
 
-        let embedded_images = discord_message
-            .embeds
-            .iter()
-            .filter_map(|e| e.image.as_ref())
-            .map(|ei| ImageBlock {
-                url: ei.url.clone(),
-            });
+        let embedded_images = discord_message.embeds.iter().filter_map(|e| {
+            match (e.kind.as_deref(), e.image.as_ref()) {
+                (Some("image"), _) => Some(ImageBlock {
+                    url: e.url.clone()?,
+                }),
+                (_, Some(img)) => Some(ImageBlock {
+                    url: img.url.clone(),
+                }),
+                _ => None,
+            }
+        });
 
         let imgs = attached_images.chain(embedded_images).collect_vec();
 
