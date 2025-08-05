@@ -94,6 +94,25 @@ impl MessageHandler {
             return Ok(());
         }
 
+        let mentioned = msg.mentions.contains(&ctx.cache.current_user());
+
+        if msg.referenced_message.as_ref().is_some_and(|m| {
+            let img_attachments = m.attachments.iter().any(|a| {
+                a.content_type
+                    .as_ref()
+                    .is_some_and(|t| t.starts_with("image/"))
+            });
+            let img_embeds = m.embeds.iter().any(|e| e.image.is_some());
+
+            img_attachments || img_embeds
+        }) && mentioned
+            && msg.content.is_empty()
+        {
+            msg.reply(ctx, "*Claude can't view images you reply to.*")
+                .await?;
+            return Ok(());
+        }
+
         let Some(server_id) = msg.guild_id else {
             return Ok(());
         };
@@ -113,10 +132,10 @@ impl MessageHandler {
             return Ok(());
         }
 
-        if msg.mentions.contains(&ctx.cache.current_user())
-            || server_config
-                .random_interaction_chance_denominator
-                .is_some_and(|d| rand::rng().random_range(1..=d.into()) == 1)
+        if server_config
+            .random_interaction_chance_denominator
+            .is_some_and(|d| rand::rng().random_range(1..=d.into()) == 1)
+            || mentioned
         {
             let Some(api_key) = server_config.claude_api_key else {
                 return Ok(());
