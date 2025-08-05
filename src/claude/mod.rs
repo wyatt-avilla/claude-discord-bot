@@ -10,5 +10,5 @@ pub use client::Client;
 pub use message::Message;
 pub use model::Model;
 pub use request::Request;
-pub use response::Response;
+pub use response::{Action, StopReason};
 pub use tools::ToolDefinition;
