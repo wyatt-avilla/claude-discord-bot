@@ -16,6 +16,32 @@ pub struct Message {
 }
 
 impl Message {
+    fn format_message(msg: &serenity::Message) -> String {
+        let fmt = |msg: &serenity::Message, reply_context: String| {
+            let time = msg
+                .timestamp
+                .with_timezone(&chrono::Local)
+                .format("%-m-%-d-%Y %-I:%M%p")
+                .to_string();
+
+            format!(
+                "[{}] {}:{} {}",
+                time,
+                msg.author.display_name(),
+                reply_context,
+                msg.normalize_content(),
+            )
+        };
+
+        match &msg.referenced_message {
+            Some(reply_msg) if !reply_msg.content.is_empty() => {
+                let reply_context = format!("(Replying to: '{}')", fmt(reply_msg, String::new()));
+                fmt(msg, reply_context)
+            }
+            _ => fmt(msg, String::new()),
+        }
+    }
+
     pub async fn from(discord_message: &serenity::Message, context: &serenity::Context) -> Self {
         let role = if discord_message.author.id == context.cache.current_user().id {
             Role::Assistant
@@ -23,18 +49,7 @@ impl Message {
             Role::User
         };
 
-        let time = discord_message
-            .timestamp
-            .with_timezone(&chrono::Local)
-            .format("%-m-%-d-%Y %-I:%M%p")
-            .to_string();
-
-        let message_text = format!(
-            "[{}] {}: {}",
-            time,
-            discord_message.author.display_name(),
-            discord_message.normalize_content(),
-        );
+        let message_text = Message::format_message(discord_message);
 
         let image_futures = discord_message.attachments.iter().map(|a| async move {
             let media_type: MediaType = a.content_type.clone()?.as_str().try_into().ok()?;
