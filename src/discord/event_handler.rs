@@ -49,6 +49,7 @@ pub async fn handle_message(
                     .messages(ctx, GetMessages::new().before(msg.id).limit(15))
                     .await?,
             )
+            .rev()
             .collect_vec();
 
         let resp = match custom_data
