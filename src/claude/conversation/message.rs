@@ -49,10 +49,16 @@ impl Message {
 
         let message_text = Message::format_message(discord_message);
 
-        let attached_images = discord_message
-            .attachments
-            .iter()
-            .map(|a| ImageBlock { url: a.url.clone() });
+        let attached_images = discord_message.attachments.iter().filter_map(|a| {
+            if a.content_type
+                .as_ref()
+                .is_some_and(|t| t.starts_with("image/"))
+            {
+                Some(ImageBlock { url: a.url.clone() })
+            } else {
+                None
+            }
+        });
 
         let embedded_images = discord_message
             .embeds
