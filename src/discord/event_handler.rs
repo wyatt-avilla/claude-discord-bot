@@ -8,7 +8,7 @@ pub async fn handle_message(
     msg: &serenity::Message,
     custom_data: &CustomData,
 ) -> Result<(), CommandError> {
-    if msg.author.id == ctx.cache.current_user().id {
+    if msg.author.id == ctx.cache.current_user().id || msg.referenced_message.is_some() {
         return Ok(());
     }
 
