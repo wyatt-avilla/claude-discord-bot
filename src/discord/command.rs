@@ -6,7 +6,7 @@ pub type CommandError = Box<dyn std::error::Error + Send + Sync>;
 type Context<'a> = poise::Context<'a, super::client::CustomData, CommandError>;
 
 /// Displays your server's config
-#[poise::command(slash_command, prefix_command)]
+#[poise::command(slash_command)]
 pub async fn get_config(ctx: Context<'_>) -> Result<(), CommandError> {
     let Some(guild_id) = ctx.guild_id() else {
         ctx.say("Couldn't get server id").await?;
@@ -27,7 +27,7 @@ pub async fn get_config(ctx: Context<'_>) -> Result<(), CommandError> {
 }
 
 /// Sets the Claude API key
-#[poise::command(slash_command, prefix_command)]
+#[poise::command(slash_command)]
 pub async fn set_api_key(
     ctx: Context<'_>,
     #[description = "API key from the Anthropic console"] api_key: String,
@@ -45,7 +45,7 @@ pub async fn set_api_key(
 }
 
 /// Sets the random interaction chance
-#[poise::command(slash_command, prefix_command)]
+#[poise::command(slash_command)]
 pub async fn set_random_interaction_chance(
     ctx: Context<'_>,
     #[description = "The `1/denominator` chance that Claude reacts on a per-message basis. Set to 0 to disable."]
@@ -73,7 +73,7 @@ pub async fn set_random_interaction_chance(
 }
 
 /// Add a channel id to the list of Claude's active channels
-#[poise::command(slash_command, prefix_command)]
+#[poise::command(slash_command)]
 pub async fn add_active_channel_id(
     ctx: Context<'_>,
     #[description = "The channel ID. You can right click on a channel to find its ID."]
@@ -97,7 +97,7 @@ pub async fn add_active_channel_id(
 }
 
 /// Clears the set of active channel IDs
-#[poise::command(slash_command, prefix_command)]
+#[poise::command(slash_command)]
 pub async fn clear_active_channels(ctx: Context<'_>) -> Result<(), CommandError> {
     let Some(guild_id) = ctx.guild_id() else {
         ctx.say("Couldn't get server id").await?;
