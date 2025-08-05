@@ -1,6 +1,7 @@
 use super::client::CustomData;
 use super::command::CommandError;
-use poise::serenity_prelude as serenity;
+use poise::serenity_prelude::{self as serenity, GetMessages};
+use rand::Rng;
 
 pub async fn handle_message(
     ctx: &serenity::Context,
@@ -30,7 +31,35 @@ pub async fn handle_message(
         return Ok(());
     }
 
-    msg.channel_id.say(ctx, "Non-replying message!").await?;
+    if msg.mentions.contains(&ctx.cache.current_user())
+        || server_config
+            .random_interaction_chance_denominator
+            .is_some_and(|d| rand::rng().random_range(1..=d.into()) == 1)
+    {
+        let builder = GetMessages::new().before(msg.id).limit(15);
+        let messages = msg.channel_id.messages(ctx, builder).await?;
+        let Some(api_key) = server_config.claude_api_key else {
+            return Ok(());
+        };
+
+        let resp = match custom_data
+            .claude
+            .get_response(messages, ctx, &api_key)
+            .await
+        {
+            Ok(r) => r,
+            Err(e) => {
+                log::error!("Error requesting response from Claude {e}");
+                return Ok(());
+            }
+        };
+
+        if let Some(resp) = resp {
+            msg.channel_id.say(ctx, resp).await?;
+        } else {
+            log::warn!("Claude chose not to respond");
+        }
+    }
 
     Ok(())
 }
