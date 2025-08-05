@@ -1,3 +1,5 @@
+use crate::claude;
+
 use super::client::CustomData;
 use super::command::CommandError;
 use poise::serenity_prelude::{self as serenity, GetMessages};
@@ -54,10 +56,16 @@ pub async fn handle_message(
             }
         };
 
-        if let Some(resp) = resp {
-            msg.channel_id.say(ctx, resp).await?;
-        } else {
-            log::warn!("Claude chose not to respond");
+        match resp {
+            claude::Response::Message(text) => {
+                msg.channel_id.say(ctx, text).await?;
+            }
+            claude::Response::Reaction(reaction) => {
+                msg.react(ctx, reaction).await?;
+            }
+            claude::Response::Pass => {
+                log::warn!("Claude chose not to response to '{}'", msg.content);
+            }
         }
     }
 
