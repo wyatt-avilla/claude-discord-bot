@@ -12,3 +12,5 @@ pub use model::Model;
 pub use request::Request;
 pub use response::{Action, StopReason};
 pub use tools::ToolDefinition;
+
+pub use system_prompt::MESSAGE_CONTEXT_LENGTH;

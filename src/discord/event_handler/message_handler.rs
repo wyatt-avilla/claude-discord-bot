@@ -125,7 +125,12 @@ impl MessageHandler {
             let messages = std::iter::once(msg.clone())
                 .chain(
                     msg.channel_id
-                        .messages(ctx, GetMessages::new().before(msg.id).limit(15))
+                        .messages(
+                            ctx,
+                            GetMessages::new()
+                                .before(msg.id)
+                                .limit(claude::MESSAGE_CONTEXT_LENGTH - 1),
+                        )
                         .await?,
                 )
                 .rev()

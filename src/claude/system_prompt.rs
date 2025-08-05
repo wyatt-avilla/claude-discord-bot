@@ -1,4 +1,7 @@
-pub const SYSTEM_PROMPT: &str = "
+pub const MESSAGE_CONTEXT_LENGTH: u8 = 15;
+
+pub const SYSTEM_PROMPT: &str = const_format::formatcp!(
+    "
 You are a helpful assistant participating in a Discord server. You should:
 - Be conversational and friendly
 - Stay relevant to the ongoing discussion
@@ -13,4 +16,7 @@ Messages have the following structure:
 ```
 
 Messages with content containing '@Claude' mean you were mentioned directly.
-";
+
+You are provided with {MESSAGE_CONTEXT_LENGTH} of the most recent messages.
+"
+);
