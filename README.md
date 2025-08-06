@@ -37,13 +37,13 @@ Options:
 
 Discord server-specific configuration is done with the bot's slash commands.
 
-| Command                          | Parameter     | Description                                                                                                                   |
-| :------------------------------- | ------------- | ----------------------------------------------------------------------------------------------------------------------------- |
-| `/add_active_channel_id`         | `channel_id`  | Marks a channel as available for Claude to respond in.                                                                        |
-| `/clear_active_channels`         |               | Marks all channels as unavailable for Claude to respond in.                                                                   |
-| `/get_config`                    |               | Gets the current server's configuration.                                                                                      |
-| `/set_api_key`                   | `api_key`     | Sets the Anthropic API key for the current server.                                                                            |
-| `/set_random_interaction_chance` | `denominator` | Sets the denominator, $d$, for the $\frac{1}{d}$ chance on a per-message basis that Claude get asked if he'd like to respond. |
+| Command                          | Parameter     | Description                                                                                                                                                            |
+| :------------------------------- | ------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `/add_active_channel_id`         | `channel_id`  | Marks a channel as available for Claude to respond in.                                                                                                                 |
+| `/clear_active_channels`         |               | Marks all channels as unavailable for Claude to respond in.                                                                                                            |
+| `/get_config`                    |               | Gets the current server's configuration.                                                                                                                               |
+| `/set_api_key`                   | `api_key`     | Sets the Anthropic API key for the current server.                                                                                                                     |
+| `/set_random_interaction_chance` | `denominator` | Sets the denominator, $d$, for the $\frac{1}{d}$ chance on a per-message basis that Claude get asked if he'd like to respond. Set to 0 to disable random interactions. |
 
 ## Installation
 
