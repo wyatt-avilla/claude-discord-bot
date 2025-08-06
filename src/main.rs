@@ -13,7 +13,7 @@ async fn main() -> anyhow::Result<()> {
         .with_max_level(args.log_level)
         .init();
 
-    let db_client = database::Client::new()?;
+    let db_client = database::Client::new(&args.database_path)?;
 
     let claude_client = claude::Client::new(args.model);
 

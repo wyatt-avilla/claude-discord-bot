@@ -1,13 +1,12 @@
 #![allow(clippy::result_large_err)]
 
-use std::num::NonZeroU64;
+use std::{num::NonZeroU64, path::PathBuf};
 
 use super::record::Record;
 use thiserror::Error;
 
 use redb::{Database, ReadableTable, TableDefinition};
 
-const REDB_FILE_NAME: &str = "claude_discord_bot.redb";
 const TABLE: TableDefinition<u64, Record> = TableDefinition::new("claude_discord_bot");
 
 #[derive(Debug, Error)]
@@ -36,9 +35,8 @@ pub struct Client {
 }
 
 impl Client {
-    pub fn new() -> Result<Self, DatabaseClientError> {
-        let db =
-            redb::Database::create(REDB_FILE_NAME).map_err(DatabaseClientError::FileCreation)?;
+    pub fn new(db_path: &PathBuf) -> Result<Self, DatabaseClientError> {
+        let db = redb::Database::create(db_path).map_err(DatabaseClientError::FileCreation)?;
 
         let write_txn = db.begin_write().map_err(DatabaseClientError::Transaction)?;
         {

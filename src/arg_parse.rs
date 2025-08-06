@@ -43,6 +43,10 @@ pub struct Args {
     #[arg(long, default_value_t = claude::Model::Sonnet4)]
     pub model: claude::Model,
 
+    /// Path to database file
+    #[arg(short, long, default_value = "./claude_discord_bot.redb")]
+    pub database_path: PathBuf,
+
     /// Log level, one of (INFO, WARN, ERROR, DEBUG, TRACE)
     #[arg(short, long, default_value_t = tracing::Level::INFO)]
     pub log_level: tracing::Level,

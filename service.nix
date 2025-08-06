@@ -24,6 +24,12 @@ with lib;
       description = "Claude model to use for the bot, one of (opus-4, sonnet-4, sonnet-3.7, sonnet-3.5, haiku-3.5)";
     };
 
+    databasePath = mkOption {
+      type = types.path;
+      default = "/var/lib/claude-discord-bot/bot.redb";
+      description = "Path to the redb database file";
+    };
+
     logLevel = mkOption {
       type = types.str;
       default = "INFO";
@@ -42,8 +48,10 @@ with lib;
           "${botBin}"
           "--discord-token-file ${toString config.services.claude-discord-bot.discordTokenFile}"
           "--model ${config.services.claude-discord-bot.model}"
+          "--database-path ${config.services.claude-discord-bot.databasePath}"
           "--log-level ${config.services.claude-discord-bot.logLevel}"
         ];
+        StateDirectory = "claude-discord-bot";
         Restart = "always";
         User = "claude-discord-bot";
         Group = "claude-discord-bot";
