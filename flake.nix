@@ -14,7 +14,15 @@
 
   outputs =
     { self, nixpkgs, ... }@inputs:
-    inputs.flake-utils.lib.eachDefaultSystem (
+    let
+      nixosModules = {
+        claude-discord-bot = import ./service.nix { inherit self; };
+      };
+    in
+    {
+      inherit nixosModules;
+    }
+    // inputs.flake-utils.lib.eachDefaultSystem (
       system:
       let
         pkgs = import nixpkgs {
@@ -84,10 +92,6 @@
             inherit pkgs;
             src = self;
           };
-        };
-
-        nixosModules = {
-          claude-discord-bot = import ./service.nix { inherit self; };
         };
       }
     );
