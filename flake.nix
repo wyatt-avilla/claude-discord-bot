@@ -85,6 +85,10 @@
             src = self;
           };
         };
+
+        nixosModules = {
+          claude-discord-bot = import ./service.nix { inherit self; };
+        };
       }
     );
 }
