@@ -53,6 +53,8 @@ with lib;
         ];
         StateDirectory = "claude-discord-bot";
         Restart = "always";
+        RestartSec = "5min";
+        StartLimitBurst = 1;
         User = "claude-discord-bot";
         Group = "claude-discord-bot";
       };
