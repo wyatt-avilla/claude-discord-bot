@@ -52,6 +52,7 @@ with lib;
           "--log-level ${config.services.claude-discord-bot.logLevel}"
         ];
         StateDirectory = "claude-discord-bot";
+        StateDirectoryMode = "0700";
         Restart = "always";
         RestartSec = "5min";
         StartLimitBurst = 1;
