@@ -53,6 +53,7 @@
 
         packages.default = pkgs.rustPlatform.buildRustPackage {
           name = "claude-discord-bot";
+          meta.mainProgram = "claude-discord-bot";
           src = ./.;
           cargoLock = {
             lockFile = ./Cargo.lock;
