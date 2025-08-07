@@ -1,8 +1,11 @@
 name: Rust CI
 
 on:
-  pull_request:
   push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+  workflow_dispatch:
 
 jobs:
   build:
