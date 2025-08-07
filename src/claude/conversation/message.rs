@@ -1,8 +1,9 @@
 use super::{ContentBlock, ImageBlock, TextBlock};
 use crate::discord::NormalizeContent;
 
-use itertools::Itertools;
 use poise::serenity_prelude as serenity;
+use std::iter;
+use std::iter::Peekable;
 
 use super::{Content, Role};
 use serde::Serialize;
@@ -40,14 +41,15 @@ impl Message {
         }
     }
 
-    pub fn from(discord_message: &serenity::Message, context: &serenity::Context) -> Self {
-        let role = if discord_message.author.id == context.cache.current_user().id {
-            Role::Assistant
-        } else {
-            Role::User
-        };
-
-        let message_text = Message::format_message(discord_message);
+    fn contextualized_images_from(
+        discord_message: &serenity::Message,
+    ) -> Peekable<impl Iterator<Item = ContentBlock>> {
+        let uploaded_by_context = ContentBlock::Text(TextBlock {
+            text: format!(
+                "*@{} uploaded the following image*",
+                discord_message.author.display_name()
+            ),
+        });
 
         let attached_images = discord_message.attachments.iter().filter_map(|a| {
             if a.content_type
@@ -72,31 +74,42 @@ impl Message {
             }
         });
 
-        let imgs = attached_images.chain(embedded_images).collect_vec();
+        let img_blocks = attached_images.chain(embedded_images);
+        img_blocks
+            .flat_map(move |ib| [uploaded_by_context.clone(), ContentBlock::ImageBlock(ib)])
+            .peekable()
+    }
 
-        if imgs.is_empty() {
+    pub fn from(discord_message: &serenity::Message, context: &serenity::Context) -> Self {
+        let role = if discord_message.author.id == context.cache.current_user().id {
+            Role::Assistant
+        } else {
+            Role::User
+        };
+
+        let message_text = Message::format_message(discord_message);
+
+        let mut imgs = Message::contextualized_images_from(discord_message);
+
+        if imgs.peek().is_none() {
             Message {
                 role,
                 content: Content::Text(message_text),
             }
+        } else if discord_message.content.is_empty() {
+            Message {
+                role,
+                content: Content::ContentBlocks(imgs.collect()),
+            }
         } else {
-            let cbs = imgs.into_iter().map(ContentBlock::ImageBlock);
-
-            if discord_message.content.is_empty() {
-                Message {
-                    role,
-                    content: Content::ContentBlocks(cbs.collect()),
-                }
-            } else {
-                Message {
-                    role,
-                    content: Content::ContentBlocks(
-                        cbs.chain(std::iter::once(ContentBlock::Text(TextBlock {
-                            text: message_text,
-                        })))
-                        .collect(),
-                    ),
-                }
+            Message {
+                role,
+                content: Content::ContentBlocks(
+                    imgs.chain(iter::once(ContentBlock::Text(TextBlock {
+                        text: message_text,
+                    })))
+                    .collect(),
+                ),
             }
         }
     }
