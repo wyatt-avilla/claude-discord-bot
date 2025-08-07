@@ -7,19 +7,19 @@ pub enum Content {
     ContentBlocks(Vec<ContentBlock>),
 }
 
-#[derive(Serialize, Debug)]
+#[derive(Serialize, Debug, Clone)]
 #[serde(untagged)]
 pub enum ContentBlock {
     Text(TextBlock),
     ImageBlock(ImageBlock),
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct TextBlock {
     pub text: String,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ImageBlock {
     pub url: String,
 }
