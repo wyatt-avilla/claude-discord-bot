@@ -60,14 +60,11 @@ impl MessageHandler {
                 Ok(())
             }
             _ => {
-                if resp.content.len() > 1 {
-                    log::warn!(
-                        "Multiple actions were provided, using the last one.\nMessage: '{}'",
-                        msg.content
-                    );
+                if resp.content.is_empty() {
+                    log::error!("Empty response provided for '{}'", msg.content);
                 }
 
-                if let Some(action) = resp.content.last() {
+                for action in resp.content {
                     match action {
                         claude::Action::SendMessage(txt) => {
                             msg.channel_id.say(ctx, txt).await?;
@@ -80,6 +77,7 @@ impl MessageHandler {
                         }
                     }
                 }
+
                 Ok(())
             }
         }
