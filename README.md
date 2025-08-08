@@ -25,8 +25,6 @@ Usage: claude-discord-bot [OPTIONS] --discord-token-file <DISCORD_TOKEN_FILE>
 Options:
   -t, --discord-token-file <DISCORD_TOKEN_FILE>
           Path to file containing (only) a Discord token
-      --model <MODEL>
-          Claude model to use for the bot [default: sonnet-4] [possible values: opus-4, sonnet-4, sonnet-3.7, sonnet-3.5, haiku-3.5]
   -d, --database-path <DATABASE_PATH>
           Path to database file [default: ./claude_discord_bot.redb]
   -l, --log-level <LOG_LEVEL>
@@ -80,7 +78,6 @@ enable/configure the bot like so:
               enable = true;
               logLevel = "INFO";
               discordTokenFile = "/path/to/file/containing/discord_token";
-              model = "sonnet-4";
             };
           }
         ];

@@ -18,12 +18,6 @@ with lib;
       description = "Path containing the Discord bot token";
     };
 
-    model = mkOption {
-      type = types.str;
-      default = "sonnet-4";
-      description = "Claude model to use for the bot, one of (opus-4, sonnet-4, sonnet-3.7, sonnet-3.5, haiku-3.5)";
-    };
-
     databasePath = mkOption {
       type = types.path;
       default = "/var/lib/claude-discord-bot/bot.redb";
@@ -47,7 +41,6 @@ with lib;
         ExecStart = lib.concatStringsSep " " [
           "${botBin}"
           "--discord-token-file ${toString config.services.claude-discord-bot.discordTokenFile}"
-          "--model ${config.services.claude-discord-bot.model}"
           "--database-path ${config.services.claude-discord-bot.databasePath}"
           "--log-level ${config.services.claude-discord-bot.logLevel}"
         ];
