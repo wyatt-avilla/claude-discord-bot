@@ -2,6 +2,8 @@
 
 use std::{num::NonZeroU64, path::PathBuf};
 
+use crate::claude::Model;
+
 use super::record::Record;
 use thiserror::Error;
 
@@ -71,6 +73,12 @@ impl Client {
     ) -> Result<(), DatabaseClientError> {
         self.modify_config(server_id, move |rec| {
             rec.claude_api_key = Some(api_key.to_string());
+        })
+    }
+
+    pub fn set_model(&self, server_id: u64, model: Model) -> Result<(), DatabaseClientError> {
+        self.modify_config(server_id, move |rec| {
+            rec.model = model;
         })
     }
 
