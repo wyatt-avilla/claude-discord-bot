@@ -112,8 +112,8 @@ pub async fn add_active_channel(
         .db
         .add_active_channel_id(guild_id.get(), channel_id.get())?;
 
-    ctx.say(format!("Added `#{}` to the set of active channels", {
-        channel_id.name(ctx).await?
+    ctx.say(format!("Added {} to the set of active channels", {
+        channel_id.mention()
     }))
     .await?;
 
