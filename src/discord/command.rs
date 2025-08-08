@@ -2,6 +2,8 @@ use std::num::NonZeroU64;
 
 use poise::serenity_prelude as serenity;
 
+use crate::claude::Model;
+
 pub type CommandError = Box<dyn std::error::Error + Send + Sync>;
 type Context<'a> = poise::Context<'a, super::client::CustomData, CommandError>;
 
@@ -40,6 +42,25 @@ pub async fn set_api_key(
     ctx.data().db.set_claude_api_key(guild_id.get(), &api_key)?;
 
     ctx.say("API key set").await?;
+
+    Ok(())
+}
+
+/// Sets the Claude Model
+#[poise::command(slash_command, required_permissions = "ADMINISTRATOR")]
+pub async fn set_model(
+    ctx: Context<'_>,
+    #[description = "Model name"] model: Model,
+) -> Result<(), CommandError> {
+    let Some(guild_id) = ctx.guild_id() else {
+        ctx.say("Couldn't get server id").await?;
+        return Ok(());
+    };
+
+    ctx.data().db.set_model(guild_id.get(), model.clone())?;
+
+    ctx.say(format!("Model set to '{}'", model.pretty_name()))
+        .await?;
 
     Ok(())
 }
