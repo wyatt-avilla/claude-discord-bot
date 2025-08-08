@@ -42,6 +42,7 @@ impl Bot {
                 commands: vec![
                     super::command::get_config(),
                     super::command::set_api_key(),
+                    super::command::set_model(),
                     super::command::set_random_interaction_chance(),
                     super::command::add_active_channel_id(),
                     super::command::clear_active_channels(),

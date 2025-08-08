@@ -13,13 +13,14 @@ impl MessageHandler {
         msg: &serenity::Message,
         custom_data: &CustomData,
         api_key: &str,
+        model: claude::Model,
         messages: Vec<serenity::Message>,
     ) -> Result<(), CommandError> {
         let mentioned = msg.mentions.contains(&ctx.cache.current_user());
 
         let resp = match custom_data
             .claude
-            .get_response(messages, ctx, api_key)
+            .get_response(messages, ctx, api_key, model)
             .await
         {
             Ok(r) => r,
@@ -153,8 +154,15 @@ impl MessageHandler {
                 .rev()
                 .collect();
 
-            MessageHandler::respond_with_claude_action(ctx, msg, custom_data, &api_key, messages)
-                .await?;
+            MessageHandler::respond_with_claude_action(
+                ctx,
+                msg,
+                custom_data,
+                &api_key,
+                server_config.model,
+                messages,
+            )
+            .await?;
         }
 
         Ok(())

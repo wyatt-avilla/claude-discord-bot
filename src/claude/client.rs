@@ -21,15 +21,13 @@ pub struct Client {
     http: reqwest::Client,
     system_prompt: String,
     anthropic_version: String,
-    model: Model,
     max_tokens: NonZeroU64,
     tools: Vec<ToolDefinition>,
 }
 
 impl Client {
-    pub fn new(model: Model) -> Self {
+    pub fn new() -> Self {
         Self {
-            model,
             ..Default::default()
         }
     }
@@ -39,11 +37,12 @@ impl Client {
         msgs: Vec<serenity::Message>,
         ctx: &serenity::Context,
         api_key: &str,
+        model: Model,
     ) -> Result<Response, ClaudeError> {
         let msgs = super::Message::vec_from(&msgs, ctx);
 
         let request = super::Request::new(
-            self.model.clone(),
+            model,
             self.system_prompt.clone(),
             self.max_tokens,
             self.tools.clone(),
@@ -69,7 +68,6 @@ impl Default for Client {
         Self {
             http: reqwest::Client::new(),
             anthropic_version: String::from("2023-06-01"),
-            model: Model::Sonnet4,
             max_tokens: NonZeroU64::new(2048).unwrap(),
             system_prompt: SYSTEM_PROMPT.to_string(),
             tools: ToolDefinition::get_tools(),

@@ -15,7 +15,7 @@ async fn main() -> anyhow::Result<()> {
 
     let db_client = database::Client::new(&args.database_path)?;
 
-    let claude_client = claude::Client::new(args.model);
+    let claude_client = claude::Client::new();
 
     let mut bot = discord::Bot::new(&args.discord_token_file, db_client, claude_client).await?;
     bot.run().await?;
