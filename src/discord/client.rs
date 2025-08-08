@@ -44,7 +44,8 @@ impl Bot {
                     super::command::set_api_key(),
                     super::command::set_model(),
                     super::command::set_random_interaction_chance(),
-                    super::command::add_active_channel_id(),
+                    super::command::add_active_channel(),
+                    super::command::remove_active_channel(),
                     super::command::clear_active_channels(),
                 ],
                 ..Default::default()

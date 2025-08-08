@@ -102,6 +102,16 @@ impl Client {
         })
     }
 
+    pub fn remove_active_channel_id(
+        &self,
+        server_id: u64,
+        channel_id: u64,
+    ) -> Result<(), DatabaseClientError> {
+        self.modify_config(server_id, move |rec| {
+            rec.active_channel_ids.remove(&channel_id);
+        })
+    }
+
     pub fn clear_active_channel_ids(&self, server_id: u64) -> Result<(), DatabaseClientError> {
         self.modify_config(server_id, move |rec| {
             rec.active_channel_ids.clear();

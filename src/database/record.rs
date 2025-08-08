@@ -5,6 +5,8 @@ use redb::Value;
 use serde::{Deserialize, Serialize};
 use std::{collections::HashSet, fmt::Display, num::NonZeroU64};
 
+use poise::serenity_prelude::{self as serenity, Mentionable};
+
 #[derive(Debug, Serialize, Deserialize, Decode, Encode, Default)]
 pub struct Record {
     pub claude_api_key: Option<String>,
@@ -37,12 +39,13 @@ impl Display for Record {
             .random_interaction_chance_denominator
             .map(|denom| format!("1/{denom}"));
 
-        let active_channel_ids = format!(
-            "[{}]",
+        let active_channels = format!(
+            "[ {} ]",
             self.active_channel_ids
                 .clone()
                 .iter()
-                .map(std::string::ToString::to_string)
+                .map(|&id| serenity::ChannelId::new(id))
+                .map(|c| c.mention())
                 .join(", ")
         );
 
@@ -57,11 +60,11 @@ impl Display for Record {
             ),
             format!("Model: {}", self.model.pretty_name()),
             format!(
-                "Active channel ids: {}",
-                if active_channel_ids.is_empty() {
+                "Active channels: {}",
+                if self.active_channel_ids.is_empty() {
                     unset.clone()
                 } else {
-                    active_channel_ids
+                    active_channels
                 }
             ),
         ];

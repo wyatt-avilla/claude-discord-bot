@@ -1,6 +1,6 @@
 use std::num::NonZeroU64;
 
-use poise::serenity_prelude as serenity;
+use poise::serenity_prelude::{self as serenity, Mentionable};
 
 use crate::claude::Model;
 
@@ -93,24 +93,54 @@ pub async fn set_random_interaction_chance(
     Ok(())
 }
 
-/// Add a channel id to the list of Claude's active channels
+/// Add a channel to the set of Claude's active channels
 #[poise::command(slash_command, required_permissions = "ADMINISTRATOR")]
-pub async fn add_active_channel_id(
+pub async fn add_active_channel(
     ctx: Context<'_>,
-    #[description = "The channel ID. You can right click on a channel to find its ID."]
-    channel_id: serenity::ChannelId,
+    #[description = "The channel"]
+    #[channel_types("Text")]
+    channel: serenity::Channel,
 ) -> Result<(), CommandError> {
     let Some(guild_id) = ctx.guild_id() else {
         ctx.say("Couldn't get server id").await?;
         return Ok(());
     };
 
+    let channel_id = channel.id();
+
     ctx.data()
         .db
         .add_active_channel_id(guild_id.get(), channel_id.get())?;
 
-    ctx.say(format!("Added `{}` to the list of active channel ids", {
-        channel_id.get()
+    ctx.say(format!("Added {} to the set of active channels", {
+        channel_id.mention()
+    }))
+    .await?;
+
+    Ok(())
+}
+
+/// Remove a channel from the set of Claude's active channels
+#[poise::command(slash_command, required_permissions = "ADMINISTRATOR")]
+pub async fn remove_active_channel(
+    ctx: Context<'_>,
+    #[description = "The channel"]
+    #[channel_types("Text")]
+    channel: serenity::Channel,
+) -> Result<(), CommandError> {
+    let Some(guild_id) = ctx.guild_id() else {
+        ctx.say("Couldn't get server id").await?;
+        return Ok(());
+    };
+
+    let channel_id = channel.id();
+
+    ctx.data()
+        .db
+        .remove_active_channel_id(guild_id.get(), channel_id.get())?;
+
+    ctx.say(format!("Removed {} from the set of active channels", {
+        channel_id.mention()
     }))
     .await?;
 
