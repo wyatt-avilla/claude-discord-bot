@@ -2,6 +2,9 @@ use super::{ContentBlock, ImageBlock, TextBlock};
 use crate::discord::NormalizeContent;
 
 use poise::serenity_prelude as serenity;
+
+use itertools::Itertools;
+use serenity::ReactionType;
 use std::iter;
 use std::iter::Peekable;
 
@@ -41,9 +44,11 @@ impl Message {
         }
     }
 
-    fn contextualized_images_from(
+    fn with_contextualized_images(
         discord_message: &serenity::Message,
-    ) -> Peekable<impl Iterator<Item = ContentBlock>> {
+        message_text: &str,
+        role: Role,
+    ) -> Self {
         let uploaded_by_context = ContentBlock::Text(TextBlock {
             text: format!(
                 "*@{} uploaded the following image*",
@@ -74,13 +79,53 @@ impl Message {
             }
         });
 
-        let img_blocks = attached_images.chain(embedded_images);
-        img_blocks
+        let mut content_blocks = attached_images
+            .chain(embedded_images)
             .flat_map(move |ib| [uploaded_by_context.clone(), ContentBlock::ImageBlock(ib)])
+            .peekable();
+
+        if content_blocks.peek().is_none() {
+            Message {
+                role,
+                content: Content::Text(message_text.to_string()),
+            }
+        } else if discord_message.content.is_empty() {
+            Message {
+                role,
+                content: Content::ContentBlocks(content_blocks.collect()),
+            }
+        } else {
+            Message {
+                role,
+                content: Content::ContentBlocks(
+                    content_blocks
+                        .chain(iter::once(ContentBlock::Text(TextBlock {
+                            text: message_text.to_string(),
+                        })))
+                        .collect(),
+                ),
+            }
+        }
+    }
+
+    fn bot_reactions(
+        discord_message: &serenity::Message,
+    ) -> Peekable<impl Iterator<Item = String>> {
+        discord_message
+            .reactions
+            .iter()
+            .filter(|r| r.me)
+            .filter_map(|r| match &r.reaction_type {
+                ReactionType::Unicode(s) => Some(s.to_string()),
+                _ => None,
+            })
             .peekable()
     }
 
-    pub fn from(discord_message: &serenity::Message, context: &serenity::Context) -> Self {
+    fn from(
+        discord_message: &serenity::Message,
+        context: &serenity::Context,
+    ) -> impl Iterator<Item = Self> {
         let role = if discord_message.author.id == context.cache.current_user().id {
             Role::Assistant
         } else {
@@ -88,29 +133,41 @@ impl Message {
         };
 
         let message_text = Message::format_message(discord_message);
+        let claude_message =
+            Message::with_contextualized_images(discord_message, &message_text, role);
+        let bot_reactions = Message::bot_reactions(discord_message).collect_vec();
 
-        let mut imgs = Message::contextualized_images_from(discord_message);
-
-        if imgs.peek().is_none() {
-            Message {
-                role,
-                content: Content::Text(message_text),
-            }
-        } else if discord_message.content.is_empty() {
-            Message {
-                role,
-                content: Content::ContentBlocks(imgs.collect()),
-            }
+        if bot_reactions.is_empty() {
+            vec![claude_message].into_iter()
         } else {
-            Message {
-                role,
-                content: Content::ContentBlocks(
-                    imgs.chain(iter::once(ContentBlock::Text(TextBlock {
-                        text: message_text,
-                    })))
-                    .collect(),
-                ),
-            }
+            vec![
+                claude_message,
+                Message {
+                    role: Role::Assistant,
+                    content: Content::Text(if bot_reactions.len() == 1 {
+                        format!("*Claude reacted with '{}'*", bot_reactions.join(", "))
+                    } else {
+                        format!(
+                            "*Claude reacted with [{}]*",
+                            bot_reactions
+                                .into_iter()
+                                .map(|r| format!("'{r}'"))
+                                .join(", ")
+                        )
+                    }),
+                },
+            ]
+            .into_iter()
         }
+    }
+
+    pub fn vec_from(
+        discord_messages: &[serenity::Message],
+        context: &serenity::Context,
+    ) -> Vec<Message> {
+        discord_messages
+            .iter()
+            .flat_map(|m| Message::from(m, context))
+            .collect()
     }
 }
