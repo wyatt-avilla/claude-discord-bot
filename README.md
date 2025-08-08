@@ -41,7 +41,7 @@ Discord server-specific configuration is done with the bot's slash commands.
 
 | Command                          | Parameter     | Description                                                                                                                                                            |
 | :------------------------------- | ------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `/add_active_channel_id`         | `channel_id`  | Marks a channel as available for Claude to respond in.                                                                                                                 |
+| `/add_active_channel`            | `channel`     | Marks a channel as available for Claude to respond in.                                                                                                                 |
 | `/clear_active_channels`         |               | Marks all channels as unavailable for Claude to respond in.                                                                                                            |
 | `/get_config`                    |               | Gets the current server's configuration.                                                                                                                               |
 | `/set_api_key`                   | `api_key`     | Sets the Anthropic API key for the current server.                                                                                                                     |
