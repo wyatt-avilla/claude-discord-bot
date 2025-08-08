@@ -16,8 +16,8 @@ his own.
 
 ## Configuration
 
-The Claude model, Discord Bot token, and database file path are parameterized
-via the CLI:
+The Discord Bot token, database file path, and log level are parameterized via
+the CLI:
 
 ```
 Usage: claude-discord-bot [OPTIONS] --discord-token-file <DISCORD_TOKEN_FILE>
@@ -45,6 +45,7 @@ Discord server-specific configuration is done with the bot's slash commands.
 | `/clear_active_channels`         |               | Marks all channels as unavailable for Claude to respond in.                                                                                                            |
 | `/get_config`                    |               | Gets the current server's configuration.                                                                                                                               |
 | `/set_api_key`                   | `api_key`     | Sets the Anthropic API key for the current server.                                                                                                                     |
+| `/set_model`                     | `model`       | Sets the Claude model to use for interactions within the server.                                                                                                       |
 | `/set_random_interaction_chance` | `denominator` | Sets the denominator, $d$, for the $\frac{1}{d}$ chance on a per-message basis that Claude get asked if he'd like to respond. Set to 0 to disable random interactions. |
 
 ## Installation
