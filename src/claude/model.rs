@@ -1,8 +1,9 @@
+use bincode::{Decode, Encode};
 use clap::ValueEnum;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use std::fmt::Display;
 
-#[derive(Clone, Debug, ValueEnum)]
+#[derive(Clone, Debug, ValueEnum, Deserialize, Encode, Decode)]
 pub enum Model {
     #[value(name = "opus-4")]
     Opus4,
@@ -26,6 +27,22 @@ impl Model {
             Model::Haiku35 => "claude-3-5-haiku-latest",
         }
         .to_string()
+    }
+
+    pub fn pretty_name(&self) -> String {
+        String::from(match self {
+            Model::Opus4 => "Opus 4",
+            Model::Sonnet4 => "Sonnet 4",
+            Model::Sonnet37 => "Sonnet 3.7",
+            Model::Sonnet35 => "Sonnet 3.5",
+            Model::Haiku35 => "Haiku 3.5",
+        })
+    }
+}
+
+impl Default for Model {
+    fn default() -> Self {
+        Self::Sonnet4
     }
 }
 

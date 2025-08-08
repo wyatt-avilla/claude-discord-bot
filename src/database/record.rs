@@ -1,3 +1,4 @@
+use crate::claude::Model;
 use bincode::{self, Decode, Encode};
 use itertools::Itertools;
 use redb::Value;
@@ -8,6 +9,7 @@ use std::{collections::HashSet, fmt::Display, num::NonZeroU64};
 pub struct Record {
     pub claude_api_key: Option<String>,
     pub random_interaction_chance_denominator: Option<NonZeroU64>,
+    pub model: Model,
     pub active_channel_ids: HashSet<u64>,
 }
 
@@ -53,6 +55,7 @@ impl Display for Record {
                 "Interaction chance: {}",
                 interaction_chance.unwrap_or(unset.clone())
             ),
+            format!("Model: {}", self.model.pretty_name()),
             format!(
                 "Active channel ids: {}",
                 if active_channel_ids.is_empty() {
