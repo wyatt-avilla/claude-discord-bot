@@ -6,6 +6,9 @@ on:
     paths: ["Cargo.toml"]
   workflow_dispatch:
 
+permissions:
+  contents: ["read", "write"]
+
 jobs:
   release:
     runs-on: ubuntu-latest
