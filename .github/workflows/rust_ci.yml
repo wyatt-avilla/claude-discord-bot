@@ -3,8 +3,10 @@ name: Rust CI
 on:
   push:
     branches: ["main"]
+    paths: "**/*.rs"
   pull_request:
     branches: ["main"]
+    paths: "**/*.rs"
   workflow_dispatch:
 
 jobs:
