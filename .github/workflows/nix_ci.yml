@@ -3,10 +3,14 @@ name: Nix CI
 on:
   push:
     branches: ["main"]
-    paths: "**/*.nix"
+    paths:
+      - "**/*.nix"
+      - "flake.lock"
   pull_request:
     branches: ["main"]
-    paths: "**/*.nix"
+    paths:
+      - "**/*.nix"
+      - "flake.lock"
   workflow_dispatch:
 
 permissions:

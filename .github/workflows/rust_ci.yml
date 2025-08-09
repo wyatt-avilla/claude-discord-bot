@@ -3,10 +3,16 @@ name: Rust CI
 on:
   push:
     branches: ["main"]
-    paths: "**/*.rs"
+    paths:
+      - "**/*.rs"
+      - "Cargo.toml"
+      - "Cargo.lock"
   pull_request:
     branches: ["main"]
-    paths: "**/*.rs"
+    paths:
+      - "**/*.rs"
+      - "Cargo.toml"
+      - "Cargo.lock"
   workflow_dispatch:
 
 jobs:
