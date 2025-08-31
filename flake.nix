@@ -51,32 +51,37 @@
           buildInputs = [ ];
         };
 
-        packages.default = pkgs.rustPlatform.buildRustPackage {
-          name = "claude-discord-bot";
-          meta.mainProgram = "claude-discord-bot";
-          src = ./.;
-          cargoLock = {
-            lockFile = ./Cargo.lock;
-          };
+        packages.default =
+          let
+            cargoToml = builtins.fromTOML (builtins.readFile ./Cargo.toml);
+          in
+          pkgs.rustPlatform.buildRustPackage {
+            pname = cargoToml.package.name;
+            inherit (cargoToml.package) version;
 
-          checkPhase = ''
-            cargo clippy -- -W clippy::pedantic -D warnings
-            cargo fmt --check
-            cargo test
-          '';
+            src = ./.;
+            cargoLock = {
+              lockFile = ./Cargo.lock;
+            };
 
-          nativeBuildInputs =
-            nativeRustToolchain
-            ++ (with pkgs; [
+            checkPhase = ''
+              cargo clippy -- -W clippy::pedantic -D warnings
+              cargo fmt --check
+              cargo test
+            '';
+
+            nativeBuildInputs =
+              nativeRustToolchain
+              ++ (with pkgs; [
+                openssl
+                pkg-config
+              ]);
+
+            buildInputs = with pkgs; [
               openssl
               pkg-config
-            ]);
-
-          buildInputs = with pkgs; [
-            openssl
-            pkg-config
-          ];
-        };
+            ];
+          };
 
         checks = {
           formatting = inputs.nix-checks.lib.mkFormattingCheck {
