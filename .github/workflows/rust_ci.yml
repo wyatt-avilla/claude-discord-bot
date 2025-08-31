@@ -7,12 +7,16 @@ on:
       - "**/*.rs"
       - "Cargo.toml"
       - "Cargo.lock"
+      - "**/*.nix"
+      - "flake.lock"
   pull_request:
     branches: ["main"]
     paths:
       - "**/*.rs"
       - "Cargo.toml"
       - "Cargo.lock"
+      - "**/*.nix"
+      - "flake.lock"
   workflow_dispatch:
 
 jobs:
