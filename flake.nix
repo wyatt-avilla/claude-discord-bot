@@ -81,6 +81,10 @@
               openssl
               pkg-config
             ];
+
+            meta = {
+              mainProgram = cargoToml.package.name;
+            };
           };
 
         checks = {
