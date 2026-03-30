@@ -53,7 +53,7 @@
 
         packages.default =
           let
-            cargoToml = builtins.fromTOML (builtins.readFile ./Cargo.toml);
+            cargoToml = fromTOML (builtins.readFile ./Cargo.toml);
           in
           pkgs.rustPlatform.buildRustPackage {
             pname = cargoToml.package.name;
