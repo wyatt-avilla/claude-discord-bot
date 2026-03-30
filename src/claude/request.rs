@@ -95,7 +95,7 @@ mod tests {
         let message_and_react_tools = ToolDefinition::get_tools().into_iter().take(2);
 
         let request = serde_json::to_value(Request {
-            model: Model::Sonnet37,
+            model: Model::Opus46,
             system: "complicated system prompt".to_string(),
             max_tokens: NonZeroU64::new(1024).unwrap(),
             tool_choice: json!({"type": "any"}),
@@ -115,7 +115,7 @@ mod tests {
         .unwrap();
 
         let json = json!({
-            "model": "claude-3-7-sonnet-latest",
+            "model": "claude-opus-4-6",
             "system": "complicated system prompt",
             "max_tokens": 1024,
             "tool_choice": {"type": "any"},

@@ -30,3 +30,5 @@ result
 discord.token
 
 *.redb
+
+.env

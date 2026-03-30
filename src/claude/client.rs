@@ -1,3 +1,4 @@
+use super::consts;
 use super::model::Model;
 use super::response::Response;
 use super::system_prompt::SYSTEM_PROMPT;
@@ -7,7 +8,7 @@ use thiserror::Error;
 
 use poise::serenity_prelude as serenity;
 
-const MESSAGE_API_URL: &str = "https://api.anthropic.com/v1/messages";
+use consts::ANTHROPIC_API_BASE_URL;
 
 #[derive(Debug, Error)]
 pub enum ClaudeError {
@@ -50,7 +51,7 @@ impl Client {
         );
 
         self.http
-            .post(MESSAGE_API_URL)
+            .post(format!("{ANTHROPIC_API_BASE_URL}/messages"))
             .header("x-api-key", api_key)
             .header("anthropic-version", self.anthropic_version.clone())
             .json(&request)
@@ -67,7 +68,7 @@ impl Default for Client {
     fn default() -> Self {
         Self {
             http: reqwest::Client::new(),
-            anthropic_version: String::from("2023-06-01"),
+            anthropic_version: String::from(consts::ANTHROPIC_API_VERSION),
             max_tokens: NonZeroU64::new(2048).unwrap(),
             system_prompt: SYSTEM_PROMPT.to_string(),
             tools: ToolDefinition::get_tools(),

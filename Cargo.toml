@@ -3,6 +3,9 @@ name = "claude-discord-bot"
 version = "0.2.0"
 edition = "2024"
 
+[features]
+api_key_tests = []
+
 [dependencies]
 anyhow = "1.0.98"
 bincode = { version = "2.0.1", features = ["serde"] }
