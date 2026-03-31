@@ -1,9 +1,57 @@
 use crate::claude;
 
+use crate::database::Record;
 use crate::discord::client::CustomData;
 use crate::discord::command::CommandError;
 use poise::serenity_prelude::{self as serenity, GetMessages};
 use rand::Rng;
+
+fn is_replying_solely_to_image(msg: &serenity::Message) -> bool {
+    match &msg.referenced_message {
+        None => false,
+        Some(m) => {
+            let img_attachments = m.attachments.iter().any(|a| {
+                a.content_type
+                    .as_ref()
+                    .is_some_and(|t| t.starts_with("image/"))
+            });
+            let img_embeds = m.embeds.iter().any(|e| e.image.is_some());
+
+            msg.content.is_empty() && (img_attachments || img_embeds)
+        }
+    }
+}
+
+fn message_in_active_channel(server_config: &Record, msg: &serenity::Message) -> bool {
+    server_config
+        .active_channel_ids
+        .contains(&msg.channel_id.get())
+}
+
+fn random_interaction_triggered(server_config: &Record) -> bool {
+    server_config
+        .random_interaction_chance_denominator
+        .is_some_and(|d| rand::rng().random_range(1..=d.into()) == 1)
+}
+
+async fn get_message_history(
+    ctx: &serenity::Context,
+    msg: &serenity::Message,
+) -> Result<Vec<serenity::Message>, CommandError> {
+    Ok(std::iter::once(msg.clone())
+        .chain(
+            msg.channel_id
+                .messages(
+                    ctx,
+                    GetMessages::new()
+                        .before(msg.id)
+                        .limit(claude::MESSAGE_CONTEXT_LENGTH - 1),
+                )
+                .await?,
+        )
+        .rev()
+        .collect::<Vec<_>>())
+}
 
 pub async fn handle_message(
     ctx: &serenity::Context,
@@ -16,20 +64,11 @@ pub async fn handle_message(
 
     let mentioned = msg.mentions.contains(&ctx.cache.current_user());
 
-    if msg.referenced_message.as_ref().is_some_and(|m| {
-        let img_attachments = m.attachments.iter().any(|a| {
-            a.content_type
-                .as_ref()
-                .is_some_and(|t| t.starts_with("image/"))
-        });
-        let img_embeds = m.embeds.iter().any(|e| e.image.is_some());
-
-        img_attachments || img_embeds
-    }) && mentioned
-        && msg.content.is_empty()
-    {
-        msg.reply(ctx, "*Claude can't view images you reply to.*")
-            .await?;
+    if is_replying_solely_to_image(msg) {
+        if mentioned {
+            msg.reply(ctx, "*Claude can't view images you reply to.*")
+                .await?;
+        }
         return Ok(());
     }
 
@@ -45,46 +84,37 @@ pub async fn handle_message(
         return Ok(());
     };
 
-    if !server_config
-        .active_channel_ids
-        .contains(&msg.channel_id.get())
-    {
+    if !message_in_active_channel(&server_config, msg) {
+        if mentioned {
+            msg.reply(
+                ctx,
+                "*Claude isn't configured to be active in this channel.*",
+            )
+            .await?;
+        }
         return Ok(());
     }
 
-    if server_config
-        .random_interaction_chance_denominator
-        .is_some_and(|d| rand::rng().random_range(1..=d.into()) == 1)
-        || mentioned
-    {
-        let Some(api_key) = server_config.claude_api_key else {
-            return Ok(());
-        };
-
-        let messages = std::iter::once(msg.clone())
-            .chain(
-                msg.channel_id
-                    .messages(
-                        ctx,
-                        GetMessages::new()
-                            .before(msg.id)
-                            .limit(claude::MESSAGE_CONTEXT_LENGTH - 1),
-                    )
-                    .await?,
-            )
-            .rev()
-            .collect();
-
-        super::action::respond_with_claude_action(
-            ctx,
-            msg,
-            custom_data,
-            &api_key,
-            server_config.model,
-            messages,
-        )
-        .await?;
+    if !mentioned && !random_interaction_triggered(&server_config) {
+        return Ok(());
     }
+
+    let Some(api_key) = server_config.claude_api_key else {
+        if mentioned {
+            msg.reply(ctx, "*Anthropic API key not set.*").await?;
+        }
+        return Ok(());
+    };
+
+    super::action::respond_with_claude_action(
+        ctx,
+        msg,
+        custom_data,
+        &api_key,
+        server_config.model,
+        get_message_history(ctx, msg).await?,
+    )
+    .await?;
 
     Ok(())
 }
