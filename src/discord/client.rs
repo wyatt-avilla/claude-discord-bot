@@ -31,7 +31,7 @@ impl Bot {
         let framework = poise::Framework::builder()
             .options(poise::FrameworkOptions {
                 event_handler: |ctx, event, framework, data| {
-                    Box::pin(super::event_handler::event_handler(
+                    Box::pin(super::event_handlers::handle_event(
                         ctx, event, framework, data,
                     ))
                 },
