@@ -14,6 +14,12 @@ pub async fn respond_with_claude_action(
 ) -> Result<(), CommandError> {
     let mentioned = msg.mentions.contains(&ctx.cache.current_user());
 
+    let _typing = if mentioned {
+        Some(msg.channel_id.start_typing(&ctx.http))
+    } else {
+        None
+    };
+
     let resp = match custom_data
         .claude
         .get_response(messages, ctx, api_key, model)
