@@ -3,26 +3,42 @@ name: Nix CI
 on:
   push:
     branches: ["main"]
-    paths:
-      - "**/*.nix"
-      - "flake.lock"
   pull_request:
     branches: ["main"]
-    paths:
-      - "**/*.nix"
-      - "flake.lock"
   workflow_dispatch:
 
 permissions:
   contents: read
 
 jobs:
+  detect_changes:
+    runs-on: ubuntu-latest
+    outputs:
+      ci_files: ${{ steps.filter.outputs.ci_files }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Detect Nix or Rust file changes
+        id: filter
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            ci_files:
+              - '**/*.nix'
+              - 'flake.nix'
+              - 'flake.lock'
+
   formatting:
+    needs: detect_changes
+    if: needs.detect_changes.outputs.ci_files == 'true'
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Install Nix
         uses: cachix/install-nix-action@v31
@@ -33,11 +49,13 @@ jobs:
         run: nix build .#checks.x86_64-linux.formatting
 
   linting:
+    needs: detect_changes
+    if: needs.detect_changes.outputs.ci_files == 'true'
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Install Nix
         uses: cachix/install-nix-action@v31
@@ -48,11 +66,13 @@ jobs:
         run: nix build .#checks.x86_64-linux.linting
 
   dead-code:
+    needs: detect_changes
+    if: needs.detect_changes.outputs.ci_files == 'true'
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Install Nix
         uses: cachix/install-nix-action@v31

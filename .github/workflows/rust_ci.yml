@@ -3,24 +3,36 @@ name: Rust CI
 on:
   push:
     branches: ["main"]
-    paths:
-      - "**/*.rs"
-      - "Cargo.toml"
-      - "Cargo.lock"
-      - "**/*.nix"
-      - "flake.lock"
   pull_request:
     branches: ["main"]
-    paths:
-      - "**/*.rs"
-      - "Cargo.toml"
-      - "Cargo.lock"
-      - "**/*.nix"
-      - "flake.lock"
   workflow_dispatch:
 
 jobs:
+  detect_changes:
+    runs-on: ubuntu-latest
+    outputs:
+      ci_files: ${{ steps.filter.outputs.ci_files }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Detect Nix or Rust file changes
+        id: filter
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            ci_files:
+              - "**/*.rs"
+              - "Cargo.toml"
+              - "Cargo.lock"
+              - "**/*.nix"
+              - "flake.lock"
+
   build:
+    needs: detect_changes
+    if: needs.detect_changes.outputs.ci_files == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
