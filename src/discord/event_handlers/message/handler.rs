@@ -6,22 +6,6 @@ use crate::discord::command::CommandError;
 use poise::serenity_prelude::{self as serenity, GetMessages};
 use rand::Rng;
 
-fn is_replying_solely_to_image(msg: &serenity::Message) -> bool {
-    match &msg.referenced_message {
-        None => false,
-        Some(m) => {
-            let img_attachments = m.attachments.iter().any(|a| {
-                a.content_type
-                    .as_ref()
-                    .is_some_and(|t| t.starts_with("image/"))
-            });
-            let img_embeds = m.embeds.iter().any(|e| e.image.is_some());
-
-            msg.content.is_empty() && (img_attachments || img_embeds)
-        }
-    }
-}
-
 fn message_in_active_channel(server_config: &Record, msg: &serenity::Message) -> bool {
     server_config
         .active_channel_ids
@@ -58,17 +42,17 @@ pub async fn handle_message(
     msg: &serenity::Message,
     custom_data: &CustomData,
 ) -> Result<(), CommandError> {
-    if msg.author.id == ctx.cache.current_user().id || msg.referenced_message.is_some() {
+    if msg.author.id == ctx.cache.current_user().id {
         return Ok(());
     }
 
     let mentioned = msg.mentions.contains(&ctx.cache.current_user());
 
-    if is_replying_solely_to_image(msg) {
+    if msg.referenced_message.is_some() {
         if mentioned {
-            msg.reply(ctx, "*Claude can't view images you reply to.*")
-                .await?;
+            msg.reply(ctx, "*Claude can't see replies. View the tracking issue* [here](<https://github.com/wyatt-avilla/claude-discord-bot/issues/18>).").await?;
         }
+
         return Ok(());
     }
 
