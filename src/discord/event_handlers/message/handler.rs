@@ -1,9 +1,16 @@
-use crate::claude;
+use crate::{claude, database::Record};
 
-use super::response_intent::{ResponseIntent, SerenityMessageContext, classify_response};
+use super::message_context::{MessageContext, SerenityMessageContext};
+use super::response_intent::{ResponseIntent, classify_response};
 use crate::discord::client::CustomData;
 use crate::discord::command::CommandError;
 use poise::serenity_prelude::{self as serenity, GetMessages};
+use rand::Rng;
+
+pub enum ResponseTrigger {
+    Mention,
+    RandomChance,
+}
 
 pub enum ErrorReply {
     CantSeeReplies,
@@ -44,6 +51,27 @@ async fn get_message_history(
         .collect::<Vec<_>>())
 }
 
+fn response_trigger(
+    message: &impl MessageContext,
+    server_config: &Record,
+    mut rng: impl Rng,
+) -> Option<ResponseTrigger> {
+    let mentioned = message.mentioned();
+    if mentioned {
+        return Some(ResponseTrigger::Mention);
+    }
+
+    let random_interaction_triggered = server_config
+        .random_interaction_chance_denominator
+        .is_some_and(|d| rng.random_range(1..=d.into()) == 1);
+
+    if random_interaction_triggered {
+        return Some(ResponseTrigger::RandomChance);
+    }
+
+    None
+}
+
 pub async fn handle_message(
     ctx: &serenity::Context,
     msg: &serenity::Message,
@@ -63,7 +91,12 @@ pub async fn handle_message(
         message: msg,
     };
 
-    match classify_response(&message_context, &server_config) {
+    let Some(response_trigger) = response_trigger(&message_context, &server_config, rand::rng())
+    else {
+        return Ok(());
+    };
+
+    match classify_response(&response_trigger, &message_context, &server_config) {
         ResponseIntent::ShouldNotRespond => (),
         ResponseIntent::ErrorReplyWith(reply) => {
             msg.reply(ctx, reply.pretty_str()).await?;
