@@ -108,10 +108,10 @@ pub async fn handle_message(
             super::action::respond_with_claude_action(
                 ctx,
                 msg,
-                custom_data,
+                &custom_data.claude,
                 api_key,
                 model.clone(),
-                get_message_history(ctx, msg).await?,
+                claude::Message::vec_from(&get_message_history(ctx, msg).await?, ctx),
             )
             .await?;
         }

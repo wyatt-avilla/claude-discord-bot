@@ -1,17 +1,10 @@
 use crate::claude;
 
-use crate::discord::client::CustomData;
+use super::handler::ErrorReply;
+use super::message_context::{MessageContext, SerenityMessageContext};
 use crate::discord::command::CommandError;
 use poise::serenity_prelude as serenity;
 
-pub async fn respond_with_claude_action(
-    ctx: &serenity::Context,
-    msg: &serenity::Message,
-    custom_data: &CustomData,
-    api_key: &str,
-    model: claude::Model,
-    messages: Vec<serenity::Message>,
-) -> Result<(), CommandError> {
     let mentioned = msg.mentions.contains(&ctx.cache.current_user());
 
     let _typing = if mentioned {
@@ -68,6 +61,14 @@ pub async fn respond_with_claude_action(
             }
 
             for action in resp.content {
+pub async fn respond_with_claude_action(
+    ctx: &serenity::Context,
+    msg: &serenity::Message,
+    claude: &impl claude::GetResponse,
+    api_key: &str,
+    model: claude::Model,
+    messages: Vec<claude::Message>,
+) -> Result<(), CommandError> {
                 match action {
                     claude::Action::SendMessage(txt) => {
                         msg.channel_id.say(ctx, txt).await?;
