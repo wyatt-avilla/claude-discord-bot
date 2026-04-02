@@ -109,3 +109,124 @@ pub async fn respond_with_claude_action(
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::super::handler::ErrorReply;
+    use super::super::message_context::MockMessageContext;
+    use super::ChannelAction;
+    use crate::{
+        claude::{ClaudeError, Response, StopReason, Usage},
+        discord::event_handlers::message::action::channel_action_from_claude_response,
+    };
+
+    async fn http_err() -> ClaudeError {
+        ClaudeError::Http(reqwest::get("not a url").await.unwrap_err())
+    }
+
+    fn response(stop_reason: StopReason) -> Response {
+        Response {
+            stop_reason,
+            usage: Usage {
+                input_tokens: 0,
+                output_tokens: 0,
+            },
+            content: vec![],
+        }
+    }
+
+    #[tokio::test]
+    async fn request_error_mentioned_error_reply() {
+        let mut ctx = MockMessageContext::new();
+        ctx.expect_mentioned().once().return_const(true);
+
+        let resp = Err(http_err().await);
+
+        let res = channel_action_from_claude_response(&ctx, resp);
+
+        assert!(matches!(
+            res,
+            Some(ChannelAction::ErrorReply(ErrorReply::SomethingWentWrong))
+        ));
+    }
+
+    #[tokio::test]
+    async fn request_error_no_mention_do_nothing() {
+        let mut ctx = MockMessageContext::new();
+        ctx.expect_mentioned().once().return_const(false);
+
+        let resp = Err(http_err().await);
+
+        let res = channel_action_from_claude_response(&ctx, resp);
+
+        assert!(res.is_none());
+    }
+
+    #[test]
+    fn max_tokens_mentioned_error_reply() {
+        let mut ctx = MockMessageContext::new();
+        ctx.expect_mentioned().once().return_const(true);
+
+        let resp = Ok(response(StopReason::MaxTokens));
+
+        let res = channel_action_from_claude_response(&ctx, resp);
+
+        assert!(matches!(
+            res,
+            Some(ChannelAction::ErrorReply(ErrorReply::MaxTokens))
+        ));
+    }
+
+    #[test]
+    fn max_tokens_no_mention_do_nothing() {
+        let mut ctx = MockMessageContext::new();
+        ctx.expect_mentioned().once().return_const(false);
+
+        let resp = Ok(response(StopReason::MaxTokens));
+
+        let res = channel_action_from_claude_response(&ctx, resp);
+
+        assert!(res.is_none());
+    }
+
+    #[test]
+    fn refusal_mentioned_error_reply() {
+        let mut ctx = MockMessageContext::new();
+        ctx.expect_mentioned().once().return_const(true);
+
+        let resp = Ok(response(StopReason::Refusal));
+
+        let res = channel_action_from_claude_response(&ctx, resp);
+
+        assert!(matches!(
+            res,
+            Some(ChannelAction::ErrorReply(
+                ErrorReply::TermsOfServiceViolation
+            ))
+        ));
+    }
+
+    #[test]
+    fn refusal_no_mention_do_nothing() {
+        let mut ctx = MockMessageContext::new();
+        ctx.expect_mentioned().once().return_const(false);
+
+        let resp = Ok(response(StopReason::Refusal));
+
+        let res = channel_action_from_claude_response(&ctx, resp);
+
+        assert!(res.is_none());
+    }
+
+    #[test]
+    fn empty_content_do_nothing() {
+        let mut ctx = MockMessageContext::new();
+        ctx.expect_mentioned().once().return_const(false);
+
+        let resp = Ok(response(StopReason::EndTurn));
+
+        let res = channel_action_from_claude_response(&ctx, resp);
+
+        assert!(res.is_none());
+    }
+}

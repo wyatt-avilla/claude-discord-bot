@@ -11,7 +11,7 @@ pub use client::{ClaudeError, Client, GetResponse};
 pub use conversation::Message;
 pub use model::Model;
 pub use request::Request;
-pub use response::{Action, Response, StopReason};
+pub use response::{Action, Response, StopReason, Usage};
 pub use tools::ToolDefinition;
 
 pub use system_prompt::MESSAGE_CONTEXT_LENGTH;
