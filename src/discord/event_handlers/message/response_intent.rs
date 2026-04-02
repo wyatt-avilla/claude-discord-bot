@@ -52,3 +52,116 @@ pub fn classify_response<'a>(
         model: &server_config.model,
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::super::handler::ErrorReply;
+    use super::super::handler::ResponseTrigger;
+    use super::super::message_context::MockMessageContext;
+    use super::ResponseIntent;
+    use super::classify_response;
+    use crate::database::Record;
+
+    #[test]
+    fn authored_by_bot_no_response() {
+        let cfg = Record::default();
+        let mut msg = MockMessageContext::new();
+
+        msg.expect_authored_by_bot().once().return_const(true);
+
+        let res = classify_response(&ResponseTrigger::Mention, &msg, &cfg);
+
+        assert!(matches!(res, ResponseIntent::ShouldNotRespond));
+    }
+
+    #[test]
+    fn reply_no_mention_no_response() {
+        let cfg = Record::default();
+        let mut msg = MockMessageContext::new();
+
+        msg.expect_authored_by_bot().once().return_const(false);
+        msg.expect_is_reply().once().return_const(true);
+
+        let res = classify_response(&ResponseTrigger::RandomChance, &msg, &cfg);
+
+        assert!(matches!(res, ResponseIntent::ShouldNotRespond));
+    }
+
+    #[test]
+    fn reply_no_mention_err_msg() {
+        let cfg = Record::default();
+        let mut msg = MockMessageContext::new();
+
+        msg.expect_authored_by_bot().once().return_const(false);
+        msg.expect_is_reply().once().return_const(true);
+
+        let res = classify_response(&ResponseTrigger::Mention, &msg, &cfg);
+
+        assert!(matches!(
+            res,
+            ResponseIntent::ErrorReplyWith(ErrorReply::CantSeeReplies)
+        ));
+    }
+
+    #[test]
+    fn not_in_active_channel_no_mention_no_response() {
+        let cfg = Record::default();
+        let mut msg = MockMessageContext::new();
+
+        msg.expect_authored_by_bot().once().return_const(false);
+        msg.expect_is_reply().once().return_const(false);
+        msg.expect_in_active_channel().once().return_const(false);
+
+        let res = classify_response(&ResponseTrigger::RandomChance, &msg, &cfg);
+
+        assert!(matches!(res, ResponseIntent::ShouldNotRespond));
+    }
+
+    #[test]
+    fn not_in_active_channel_mention_err_msg() {
+        let cfg = Record::default();
+        let mut msg = MockMessageContext::new();
+
+        msg.expect_authored_by_bot().once().return_const(false);
+        msg.expect_is_reply().once().return_const(false);
+        msg.expect_in_active_channel().once().return_const(false);
+
+        let res = classify_response(&ResponseTrigger::Mention, &msg, &cfg);
+
+        assert!(matches!(
+            res,
+            ResponseIntent::ErrorReplyWith(ErrorReply::InactiveChannel)
+        ));
+    }
+
+    #[test]
+    fn no_api_key_no_mention_no_response() {
+        let cfg = Record::default();
+        let mut msg = MockMessageContext::new();
+
+        msg.expect_authored_by_bot().once().return_const(false);
+        msg.expect_is_reply().once().return_const(false);
+        msg.expect_in_active_channel().once().return_const(true);
+
+        let res = classify_response(&ResponseTrigger::RandomChance, &msg, &cfg);
+
+        assert!(matches!(res, ResponseIntent::ShouldNotRespond));
+    }
+
+    #[test]
+    fn no_api_key_mention_err_msg() {
+        let cfg = Record::default();
+        let mut msg = MockMessageContext::new();
+
+        msg.expect_authored_by_bot().once().return_const(false);
+        msg.expect_is_reply().once().return_const(false);
+        msg.expect_in_active_channel().once().return_const(true);
+
+        let res = classify_response(&ResponseTrigger::Mention, &msg, &cfg);
+
+        assert!(matches!(
+            res,
+            ResponseIntent::ErrorReplyWith(ErrorReply::MissingAPIKey)
+        ));
+    }
+}
