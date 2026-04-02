@@ -10,6 +10,8 @@ pub trait MessageContext {
     fn is_reply(&self) -> bool;
     fn mentioned(&self) -> bool;
     fn in_active_channel(&self, server_config: &Record) -> bool;
+    fn start_typing(&self) -> serenity::Typing;
+    fn content(&self) -> &str;
 }
 
 pub struct SerenityMessageContext<'a> {
@@ -36,5 +38,13 @@ impl MessageContext for SerenityMessageContext<'_> {
         server_config
             .active_channel_ids
             .contains(&self.message.channel_id.get())
+    }
+
+    fn start_typing(&self) -> serenity::Typing {
+        self.message.channel_id.start_typing(&self.context.http)
+    }
+
+    fn content(&self) -> &str {
+        &self.message.content
     }
 }
