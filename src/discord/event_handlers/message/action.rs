@@ -1,38 +1,30 @@
 use crate::claude;
 
-use crate::discord::client::CustomData;
+use super::handler::ErrorReply;
+use super::message_context::{MessageContext, SerenityMessageContext};
 use crate::discord::command::CommandError;
 use poise::serenity_prelude as serenity;
 
-pub async fn respond_with_claude_action(
-    ctx: &serenity::Context,
-    msg: &serenity::Message,
-    custom_data: &CustomData,
-    api_key: &str,
-    model: claude::Model,
-    messages: Vec<serenity::Message>,
-) -> Result<(), CommandError> {
-    let mentioned = msg.mentions.contains(&ctx.cache.current_user());
+enum ChannelAction {
+    ErrorReply(ErrorReply),
+    ClaudeActions(Vec<claude::Action>),
+}
 
-    let _typing = if mentioned {
-        Some(msg.channel_id.start_typing(&ctx.http))
-    } else {
-        None
-    };
+fn channel_action_from_claude_response(
+    message: &impl MessageContext,
+    claude_response: Result<claude::Response, claude::ClaudeError>,
+) -> Option<ChannelAction> {
+    let mentioned = message.mentioned();
 
-    let resp = match custom_data
-        .claude
-        .get_response(messages, ctx, api_key, model)
-        .await
-    {
+    let resp = match claude_response {
         Ok(r) => r,
         Err(e) => {
             log::error!("Error requesting response from Claude ({e})");
-            if mentioned {
-                msg.reply(ctx, "*An error occurred while Claude tried to respond*")
-                    .await?;
-            }
-            return Ok(());
+            return if mentioned {
+                Some(ChannelAction::ErrorReply(ErrorReply::SomethingWentWrong))
+            } else {
+                None
+            };
         }
     };
 
@@ -40,34 +32,67 @@ pub async fn respond_with_claude_action(
         claude::StopReason::MaxTokens => {
             log::error!(
                 "Claude hit the max amount of tokens while trying to respond to '{}'",
-                msg.content
+                message.content()
             );
             if mentioned {
-                msg.reply(
-                    ctx,
-                    "*Claude hit the max amount of tokens while trying to respond*",
-                )
-                .await?;
+                Some(ChannelAction::ErrorReply(ErrorReply::MaxTokens))
+            } else {
+                None
             }
-            Ok(())
         }
         claude::StopReason::Refusal => {
-            log::error!("Claude refused to respond to '{}'", msg.content);
+            log::error!("Claude refused to respond to '{}'", message.content());
             if mentioned {
-                msg.reply(
-                    ctx,
-                    "*Content in this interaction violates Anthropic's terms of service*",
-                )
-                .await?;
+                Some(ChannelAction::ErrorReply(
+                    ErrorReply::TermsOfServiceViolation,
+                ))
+            } else {
+                None
             }
-            Ok(())
         }
         _ => {
             if resp.content.is_empty() {
-                log::error!("Empty response provided for '{}'", msg.content);
+                log::error!("Empty response provided for '{}'", message.content());
+                None
+            } else {
+                Some(ChannelAction::ClaudeActions(resp.content))
             }
+        }
+    }
+}
 
-            for action in resp.content {
+pub async fn respond_with_claude_action(
+    ctx: &serenity::Context,
+    msg: &serenity::Message,
+    claude: &impl claude::GetResponse,
+    api_key: &str,
+    model: claude::Model,
+    messages: Vec<claude::Message>,
+) -> Result<(), CommandError> {
+    let message_context = SerenityMessageContext {
+        message: msg,
+        context: ctx,
+    };
+
+    let mentioned = message_context.mentioned();
+
+    let _typing = if mentioned {
+        Some(message_context.start_typing())
+    } else {
+        None
+    };
+
+    match channel_action_from_claude_response(
+        &message_context,
+        claude.get_response(messages, api_key, model).await,
+    ) {
+        None => Ok(()),
+        Some(ChannelAction::ErrorReply(reply)) => {
+            msg.reply(ctx, reply.pretty_str()).await?;
+            Ok(())
+        }
+        Some(ChannelAction::ClaudeActions(actions)) => {
+            for action in actions {
                 match action {
                     claude::Action::SendMessage(txt) => {
                         msg.channel_id.say(ctx, txt).await?;
@@ -80,8 +105,128 @@ pub async fn respond_with_claude_action(
                     }
                 }
             }
-
             Ok(())
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::super::handler::ErrorReply;
+    use super::super::message_context::MockMessageContext;
+    use super::ChannelAction;
+    use crate::{
+        claude::{ClaudeError, Response, StopReason, Usage},
+        discord::event_handlers::message::action::channel_action_from_claude_response,
+    };
+
+    async fn http_err() -> ClaudeError {
+        ClaudeError::Http(reqwest::get("not a url").await.unwrap_err())
+    }
+
+    fn response(stop_reason: StopReason) -> Response {
+        Response {
+            stop_reason,
+            usage: Usage {
+                input_tokens: 0,
+                output_tokens: 0,
+            },
+            content: vec![],
+        }
+    }
+
+    #[tokio::test]
+    async fn request_error_mentioned_error_reply() {
+        let mut ctx = MockMessageContext::new();
+        ctx.expect_mentioned().once().return_const(true);
+
+        let resp = Err(http_err().await);
+
+        let res = channel_action_from_claude_response(&ctx, resp);
+
+        assert!(matches!(
+            res,
+            Some(ChannelAction::ErrorReply(ErrorReply::SomethingWentWrong))
+        ));
+    }
+
+    #[tokio::test]
+    async fn request_error_no_mention_do_nothing() {
+        let mut ctx = MockMessageContext::new();
+        ctx.expect_mentioned().once().return_const(false);
+
+        let resp = Err(http_err().await);
+
+        let res = channel_action_from_claude_response(&ctx, resp);
+
+        assert!(res.is_none());
+    }
+
+    #[test]
+    fn max_tokens_mentioned_error_reply() {
+        let mut ctx = MockMessageContext::new();
+        ctx.expect_mentioned().once().return_const(true);
+
+        let resp = Ok(response(StopReason::MaxTokens));
+
+        let res = channel_action_from_claude_response(&ctx, resp);
+
+        assert!(matches!(
+            res,
+            Some(ChannelAction::ErrorReply(ErrorReply::MaxTokens))
+        ));
+    }
+
+    #[test]
+    fn max_tokens_no_mention_do_nothing() {
+        let mut ctx = MockMessageContext::new();
+        ctx.expect_mentioned().once().return_const(false);
+
+        let resp = Ok(response(StopReason::MaxTokens));
+
+        let res = channel_action_from_claude_response(&ctx, resp);
+
+        assert!(res.is_none());
+    }
+
+    #[test]
+    fn refusal_mentioned_error_reply() {
+        let mut ctx = MockMessageContext::new();
+        ctx.expect_mentioned().once().return_const(true);
+
+        let resp = Ok(response(StopReason::Refusal));
+
+        let res = channel_action_from_claude_response(&ctx, resp);
+
+        assert!(matches!(
+            res,
+            Some(ChannelAction::ErrorReply(
+                ErrorReply::TermsOfServiceViolation
+            ))
+        ));
+    }
+
+    #[test]
+    fn refusal_no_mention_do_nothing() {
+        let mut ctx = MockMessageContext::new();
+        ctx.expect_mentioned().once().return_const(false);
+
+        let resp = Ok(response(StopReason::Refusal));
+
+        let res = channel_action_from_claude_response(&ctx, resp);
+
+        assert!(res.is_none());
+    }
+
+    #[test]
+    fn empty_content_do_nothing() {
+        let mut ctx = MockMessageContext::new();
+        ctx.expect_mentioned().once().return_const(false);
+
+        let resp = Ok(response(StopReason::EndTurn));
+
+        let res = channel_action_from_claude_response(&ctx, resp);
+
+        assert!(res.is_none());
     }
 }
