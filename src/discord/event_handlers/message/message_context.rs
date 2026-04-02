@@ -1,6 +1,10 @@
+#[cfg(test)]
+use mockall::{automock, predicate::*};
+
 use crate::database::Record;
 use poise::serenity_prelude::{self as serenity};
 
+#[cfg_attr(test, automock)]
 pub trait MessageContext {
     fn authored_by_bot(&self) -> bool;
     fn is_reply(&self) -> bool;

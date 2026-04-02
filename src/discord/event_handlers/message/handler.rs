@@ -51,19 +51,20 @@ async fn get_message_history(
         .collect::<Vec<_>>())
 }
 
+fn random_interaction_triggered(server_config: &Record) -> bool {
+    server_config
+        .random_interaction_chance_denominator
+        .is_some_and(|d| rand::rng().random_range(1..=d.into()) == 1)
+}
+
 fn response_trigger(
     message: &impl MessageContext,
-    server_config: &Record,
-    mut rng: impl Rng,
+    random_interaction_triggered: bool,
 ) -> Option<ResponseTrigger> {
     let mentioned = message.mentioned();
     if mentioned {
         return Some(ResponseTrigger::Mention);
     }
-
-    let random_interaction_triggered = server_config
-        .random_interaction_chance_denominator
-        .is_some_and(|d| rng.random_range(1..=d.into()) == 1);
 
     if random_interaction_triggered {
         return Some(ResponseTrigger::RandomChance);
@@ -91,8 +92,10 @@ pub async fn handle_message(
         message: msg,
     };
 
-    let Some(response_trigger) = response_trigger(&message_context, &server_config, rand::rng())
-    else {
+    let Some(response_trigger) = response_trigger(
+        &message_context,
+        random_interaction_triggered(&server_config),
+    ) else {
         return Ok(());
     };
 
@@ -114,4 +117,63 @@ pub async fn handle_message(
         }
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::super::message_context::MockMessageContext;
+    use super::ResponseTrigger;
+    use super::response_trigger;
+
+    fn mentioned_message() -> MockMessageContext {
+        let mut msg = MockMessageContext::new();
+
+        msg.expect_mentioned().once().return_const(true);
+
+        msg
+    }
+
+    fn message() -> MockMessageContext {
+        let mut msg = MockMessageContext::new();
+
+        msg.expect_mentioned().once().return_const(false);
+
+        msg
+    }
+
+    #[test]
+    fn mention_triggers() {
+        let msg = mentioned_message();
+
+        let resp = response_trigger(&msg, false);
+
+        assert!(matches!(resp, Some(ResponseTrigger::Mention)));
+    }
+
+    #[test]
+    fn random_triggers() {
+        let msg = message();
+
+        let resp = response_trigger(&msg, true);
+
+        assert!(matches!(resp, Some(ResponseTrigger::RandomChance)));
+    }
+
+    #[test]
+    fn neither_no_response() {
+        let msg = message();
+
+        let resp = response_trigger(&msg, false);
+
+        assert!(resp.is_none());
+    }
+
+    #[test]
+    fn mention_takes_priority_over_random() {
+        let msg = mentioned_message();
+
+        let resp = response_trigger(&msg, true);
+
+        assert!(matches!(resp, Some(ResponseTrigger::Mention)));
+    }
 }
