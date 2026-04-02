@@ -5,27 +5,26 @@ use super::message_context::{MessageContext, SerenityMessageContext};
 use crate::discord::command::CommandError;
 use poise::serenity_prelude as serenity;
 
-    let mentioned = msg.mentions.contains(&ctx.cache.current_user());
+enum ChannelAction {
+    ErrorReply(ErrorReply),
+    ClaudeActions(Vec<claude::Action>),
+}
 
-    let _typing = if mentioned {
-        Some(msg.channel_id.start_typing(&ctx.http))
-    } else {
-        None
-    };
+fn channel_action_from_claude_response(
+    message: &impl MessageContext,
+    claude_response: Result<claude::Response, claude::ClaudeError>,
+) -> Option<ChannelAction> {
+    let mentioned = message.mentioned();
 
-    let resp = match custom_data
-        .claude
-        .get_response(claude::Message::vec_from(&messages, ctx), api_key, model)
-        .await
-    {
+    let resp = match claude_response {
         Ok(r) => r,
         Err(e) => {
             log::error!("Error requesting response from Claude ({e})");
-            if mentioned {
-                msg.reply(ctx, "*An error occurred while Claude tried to respond*")
-                    .await?;
-            }
-            return Ok(());
+            return if mentioned {
+                Some(ChannelAction::ErrorReply(ErrorReply::SomethingWentWrong))
+            } else {
+                None
+            };
         }
     };
 
@@ -33,34 +32,35 @@ use poise::serenity_prelude as serenity;
         claude::StopReason::MaxTokens => {
             log::error!(
                 "Claude hit the max amount of tokens while trying to respond to '{}'",
-                msg.content
+                message.content()
             );
             if mentioned {
-                msg.reply(
-                    ctx,
-                    "*Claude hit the max amount of tokens while trying to respond*",
-                )
-                .await?;
+                Some(ChannelAction::ErrorReply(ErrorReply::MaxTokens))
+            } else {
+                None
             }
-            Ok(())
         }
         claude::StopReason::Refusal => {
-            log::error!("Claude refused to respond to '{}'", msg.content);
+            log::error!("Claude refused to respond to '{}'", message.content());
             if mentioned {
-                msg.reply(
-                    ctx,
-                    "*Content in this interaction violates Anthropic's terms of service*",
-                )
-                .await?;
+                Some(ChannelAction::ErrorReply(
+                    ErrorReply::TermsOfServiceViolation,
+                ))
+            } else {
+                None
             }
-            Ok(())
         }
         _ => {
             if resp.content.is_empty() {
-                log::error!("Empty response provided for '{}'", msg.content);
+                log::error!("Empty response provided for '{}'", message.content());
+                None
+            } else {
+                Some(ChannelAction::ClaudeActions(resp.content))
             }
+        }
+    }
+}
 
-            for action in resp.content {
 pub async fn respond_with_claude_action(
     ctx: &serenity::Context,
     msg: &serenity::Message,
@@ -69,6 +69,30 @@ pub async fn respond_with_claude_action(
     model: claude::Model,
     messages: Vec<claude::Message>,
 ) -> Result<(), CommandError> {
+    let message_context = SerenityMessageContext {
+        message: msg,
+        context: ctx,
+    };
+
+    let mentioned = message_context.mentioned();
+
+    let _typing = if mentioned {
+        Some(message_context.start_typing())
+    } else {
+        None
+    };
+
+    match channel_action_from_claude_response(
+        &message_context,
+        claude.get_response(messages, api_key, model).await,
+    ) {
+        None => Ok(()),
+        Some(ChannelAction::ErrorReply(reply)) => {
+            msg.reply(ctx, reply.pretty_str()).await?;
+            Ok(())
+        }
+        Some(ChannelAction::ClaudeActions(actions)) => {
+            for action in actions {
                 match action {
                     claude::Action::SendMessage(txt) => {
                         msg.channel_id.say(ctx, txt).await?;
@@ -81,7 +105,6 @@ pub async fn respond_with_claude_action(
                     }
                 }
             }
-
             Ok(())
         }
     }
