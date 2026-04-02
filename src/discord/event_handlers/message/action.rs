@@ -22,7 +22,7 @@ pub async fn respond_with_claude_action(
 
     let resp = match custom_data
         .claude
-        .get_response(messages, ctx, api_key, model)
+        .get_response(claude::Message::vec_from(&messages, ctx), api_key, model)
         .await
     {
         Ok(r) => r,

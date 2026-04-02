@@ -3,10 +3,9 @@ use super::model::Model;
 use super::response::Response;
 use super::system_prompt::SYSTEM_PROMPT;
 use super::tools::ToolDefinition;
+use crate::claude;
 use std::num::NonZeroU64;
 use thiserror::Error;
-
-use poise::serenity_prelude as serenity;
 
 use consts::ANTHROPIC_API_BASE_URL;
 
@@ -35,13 +34,10 @@ impl Client {
 
     pub async fn get_response(
         &self,
-        msgs: Vec<serenity::Message>,
-        ctx: &serenity::Context,
+        msgs: Vec<claude::Message>,
         api_key: &str,
         model: Model,
     ) -> Result<Response, ClaudeError> {
-        let msgs = super::Message::vec_from(&msgs, ctx);
-
         let request = super::Request::new(
             model,
             self.system_prompt.clone(),
