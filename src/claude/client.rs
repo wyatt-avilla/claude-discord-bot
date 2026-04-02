@@ -9,6 +9,26 @@ use thiserror::Error;
 
 use consts::ANTHROPIC_API_BASE_URL;
 
+pub trait GetResponse {
+    async fn get_response(
+        &self,
+        msgs: Vec<claude::Message>,
+        api_key: &str,
+        model: claude::Model,
+    ) -> Result<claude::Response, ClaudeError>;
+}
+
+impl GetResponse for Client {
+    async fn get_response(
+        &self,
+        msgs: Vec<claude::Message>,
+        api_key: &str,
+        model: claude::Model,
+    ) -> Result<claude::Response, ClaudeError> {
+        self.get_response(msgs, api_key, model).await
+    }
+}
+
 #[derive(Debug, Error)]
 pub enum ClaudeError {
     #[error("Couldn't send HTTP request ({0})")]
