@@ -84,7 +84,7 @@ pub async fn respond_with_claude_action(
 
     match channel_action_from_claude_response(
         &message_context,
-        claude.get_response(messages, api_key, model).await,
+        claude.get_response(&messages, api_key, &model).await,
     ) {
         None => Ok(()),
         Some(ChannelAction::ErrorReply(reply)) => {

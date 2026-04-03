@@ -7,22 +7,22 @@ use serde_json::json;
 use std::num::NonZeroU64;
 
 #[derive(Debug, Serialize)]
-pub struct Request {
-    model: Model,
-    system: String,
+pub struct Request<'a> {
+    model: &'a Model,
+    system: &'a str,
     max_tokens: NonZeroU64,
     tool_choice: Value,
-    tools: Vec<ToolDefinition>,
-    messages: Vec<Message>,
+    tools: &'a Vec<ToolDefinition>,
+    messages: &'a [Message],
 }
 
-impl Request {
+impl<'a> Request<'a> {
     pub fn new(
-        model: Model,
-        system_prompt: String,
+        model: &'a Model,
+        system_prompt: &'a str,
         max_tokens: NonZeroU64,
-        tools: Vec<ToolDefinition>,
-        messages: Vec<Message>,
+        tools: &'a Vec<ToolDefinition>,
+        messages: &'a [Message],
     ) -> Self {
         Self {
             model,
@@ -51,12 +51,12 @@ mod tests {
         let skip_response_tool = ToolDefinition::get_tools().get(2).unwrap().clone();
 
         let request = serde_json::to_value(Request {
-            model: Model::Sonnet4,
-            system: "system prompt".to_string(),
+            model: &Model::Sonnet4,
+            system: "system prompt",
             max_tokens: NonZeroU64::new(1024).unwrap(),
             tool_choice: json!({"type": "any"}),
-            tools: vec![skip_response_tool],
-            messages: vec![Message {
+            tools: &vec![skip_response_tool],
+            messages: &[Message {
                 role: Role::User,
                 content: Content::Text("hello world".to_string()),
             }],
@@ -95,12 +95,12 @@ mod tests {
         let message_and_react_tools = ToolDefinition::get_tools().into_iter().take(2);
 
         let request = serde_json::to_value(Request {
-            model: Model::Opus46,
-            system: "complicated system prompt".to_string(),
+            model: &Model::Opus46,
+            system: "complicated system prompt",
             max_tokens: NonZeroU64::new(1024).unwrap(),
             tool_choice: json!({"type": "any"}),
-            tools: message_and_react_tools.collect(),
-            messages: vec![Message {
+            tools: &message_and_react_tools.collect(),
+            messages: &[Message {
                 role: Role::User,
                 content: Content::ContentBlocks(vec![
                     ContentBlock::Text(TextBlock {
