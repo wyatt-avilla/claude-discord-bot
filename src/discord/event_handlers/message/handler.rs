@@ -17,7 +17,6 @@ pub enum ResponseTrigger {
 
 pub enum ErrorReply {
     CantSeeReplies,
-    InactiveChannel,
     MissingAPIKey,
     SomethingWentWrong,
     MaxTokens,
@@ -29,9 +28,6 @@ impl ErrorReply {
         match self {
             ErrorReply::CantSeeReplies => {
                 "*Claude can't see replies. View the tracking issue* [here](<https://github.com/wyatt-avilla/claude-discord-bot/issues/18>)."
-            }
-            ErrorReply::InactiveChannel => {
-                "*Claude isn't configured to be active in this channel.*"
             }
             ErrorReply::MissingAPIKey => "*Anthropic API key not set.*",
             ErrorReply::SomethingWentWrong => "*An error occurred while Claude tried to respond*",

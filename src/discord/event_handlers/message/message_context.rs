@@ -1,7 +1,6 @@
 #[cfg(test)]
 use mockall::{automock, predicate::*};
 
-use crate::database::Record;
 use poise::serenity_prelude::{self as serenity};
 
 #[cfg_attr(test, automock)]
@@ -9,7 +8,6 @@ pub trait MessageContext {
     fn authored_by_bot(&self) -> bool;
     fn is_reply(&self) -> bool;
     fn mentioned(&self) -> bool;
-    fn in_active_channel(&self, server_config: &Record) -> bool;
     fn start_typing(&self) -> serenity::Typing;
     fn content(&self) -> &str;
 }
@@ -32,12 +30,6 @@ impl MessageContext for SerenityMessageContext<'_> {
         self.message
             .mentions
             .contains(&self.context.cache.current_user())
-    }
-
-    fn in_active_channel(&self, server_config: &Record) -> bool {
-        server_config
-            .active_channel_ids
-            .contains(&self.message.channel_id.get())
     }
 
     fn start_typing(&self) -> serenity::Typing {
