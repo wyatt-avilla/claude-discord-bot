@@ -1,11 +1,14 @@
-use crate::{claude, database::Record};
+use crate::database::Record;
 
 use super::message_context::{MessageContext, SerenityMessageContext};
 use super::response_intent::{ResponseIntent, classify_response};
+use crate::claude;
+use crate::database;
 use crate::discord::client::CustomData;
 use crate::discord::command::CommandError;
 use poise::serenity_prelude::{self as serenity, GetMessages};
 use rand::Rng;
+use tokio::sync::mpsc;
 
 pub enum ResponseTrigger {
     Mention,
@@ -83,49 +86,115 @@ fn response_trigger(
     None
 }
 
+async fn handler_task(
+    id: serenity::ChannelId,
+    db: database::Client,
+    claude: claude::Client,
+    mut rx: mpsc::Receiver<(serenity::Context, serenity::Message)>,
+) {
+    while let Some((ctx, msg)) = rx.recv().await {
+        let Some(Ok(server_config)) = msg.guild_id.map(|id| db.get_config(id.into())) else {
+            log::error!(
+                "Couldn't get server config when trying to process message '{}'",
+                msg.content
+            );
+            break;
+        };
+
+        let message_context = SerenityMessageContext {
+            context: &ctx,
+            message: &msg,
+        };
+
+        let Some(response_trigger) = response_trigger(
+            &message_context,
+            random_interaction_triggered(&server_config),
+        ) else {
+            continue;
+        };
+
+        match classify_response(&response_trigger, &message_context, &server_config) {
+            ResponseIntent::ShouldNotRespond => (),
+            ResponseIntent::ErrorReplyWith(reply) => {
+                if msg.reply(ctx, reply.pretty_str()).await.is_err() {
+                    log::error!("Unable to reply in channel id {id}");
+                    break;
+                }
+            }
+            ResponseIntent::ShouldRespondWith { api_key, model } => {
+                let Ok(history) = get_message_history(&ctx, &msg).await else {
+                    log::error!("Unable to get history in channel id {id}");
+                    break;
+                };
+
+                if let Err(e) = super::action::respond_with_claude_action(
+                    &ctx,
+                    &msg,
+                    &claude,
+                    api_key,
+                    model.clone(),
+                    claude::Message::vec_from(&history, &ctx),
+                )
+                .await
+                {
+                    log::error!("Unable respond with action in channel id {id} ({e})");
+                    break;
+                }
+            }
+        }
+    }
+
+    log::error!("Task for channel id {id} exiting...");
+}
+
 pub async fn handle_message(
     ctx: &serenity::Context,
     msg: &serenity::Message,
     custom_data: &CustomData,
 ) -> Result<(), CommandError> {
-    let Some(Ok(server_config)) = msg.guild_id.map(|id| custom_data.db.get_config(id.into()))
-    else {
-        log::warn!(
-            "Couldn't get server config when trying to process message '{}'",
-            msg.content
-        );
-        return Ok(());
-    };
-
-    let message_context = SerenityMessageContext {
-        context: ctx,
-        message: msg,
-    };
-
-    let Some(response_trigger) = response_trigger(
-        &message_context,
-        random_interaction_triggered(&server_config),
-    ) else {
-        return Ok(());
-    };
-
-    match classify_response(&response_trigger, &message_context, &server_config) {
-        ResponseIntent::ShouldNotRespond => (),
-        ResponseIntent::ErrorReplyWith(reply) => {
-            msg.reply(ctx, reply.pretty_str()).await?;
+    let server_config = match msg.guild_id.map(|id| custom_data.db.get_config(id.into())) {
+        Some(Ok(cfg)) => cfg,
+        None => return Ok(()),
+        Some(Err(e)) => {
+            log::error!(
+                "Couldn't get server config when trying to process message '{}' ({})",
+                msg.content,
+                e,
+            );
+            return Ok(());
         }
-        ResponseIntent::ShouldRespondWith { api_key, model } => {
-            super::action::respond_with_claude_action(
-                ctx,
-                msg,
-                &custom_data.claude,
-                api_key,
-                model.clone(),
-                claude::Message::vec_from(&get_message_history(ctx, msg).await?, ctx),
-            )
-            .await?;
-        }
+    };
+
+    if !server_config
+        .active_channel_ids
+        .contains(&msg.channel_id.get())
+    {
+        return Ok(());
     }
+
+    let sender = custom_data
+        .channel_senders
+        .entry(msg.channel_id)
+        .or_insert_with(|| {
+            let (tx, rx) = mpsc::channel::<(serenity::Context, serenity::Message)>(128);
+            log::info!("Spawning receiver task for channel id {}", msg.channel_id);
+
+            let id = msg.channel_id;
+            let db = custom_data.db.clone();
+            let claude = custom_data.claude.clone();
+            tokio::spawn(async move { handler_task(id, db, claude, rx).await });
+
+            tx
+        });
+
+    if let Err(e) = sender.send((ctx.to_owned(), msg.to_owned())).await {
+        log::error!(
+            "Couldn't send message to channel id '{}' ({})",
+            msg.channel_id,
+            e
+        );
+    }
+
     Ok(())
 }
 

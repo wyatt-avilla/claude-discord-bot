@@ -1,9 +1,13 @@
+use dashmap::DashMap;
 use poise::{PrefixFrameworkOptions, serenity_prelude as serenity};
 use thiserror::Error;
+use tokio::sync::mpsc;
 
 pub struct CustomData {
     pub db: crate::database::Client,
     pub claude: crate::claude::Client,
+    pub channel_senders:
+        DashMap<serenity::ChannelId, mpsc::Sender<(serenity::Context, serenity::Message)>>,
 }
 
 pub struct Bot {
@@ -56,6 +60,7 @@ impl Bot {
                     Ok(CustomData {
                         db: database_client,
                         claude: claude_client,
+                        channel_senders: DashMap::new(),
                     })
                 })
             })
