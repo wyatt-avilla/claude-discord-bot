@@ -172,27 +172,43 @@ pub async fn handle_message(
         return Ok(());
     }
 
-    let sender = custom_data
-        .channel_senders
-        .entry(msg.channel_id)
-        .or_insert_with(|| {
-            let (tx, rx) = mpsc::channel::<(serenity::Context, serenity::Message)>(128);
-            log::info!("Spawning receiver task for channel id {}", msg.channel_id);
+    let sender_entry = || custom_data.channel_senders.entry(msg.channel_id);
 
-            let id = msg.channel_id;
-            let db = custom_data.db.clone();
-            let claude = custom_data.claude.clone();
-            tokio::spawn(async move { handler_task(id, db, claude, rx).await });
+    let tx_from_new_task = || {
+        let (tx, rx) = mpsc::channel::<(serenity::Context, serenity::Message)>(128);
+        log::info!("Spawning receiver task for channel id {}", msg.channel_id);
 
-            tx
-        });
+        let id = msg.channel_id;
+        let db = custom_data.db.clone();
+        let claude = custom_data.claude.clone();
 
-    if let Err(e) = sender.send((ctx.to_owned(), msg.to_owned())).await {
-        log::error!(
+        tokio::spawn(async move { handler_task(id, db, claude, rx).await });
+
+        tx
+    };
+
+    let tx = sender_entry()
+        .or_insert_with(tx_from_new_task)
+        .value()
+        .clone();
+
+    if let Err(e) = tx.send((ctx.to_owned(), msg.to_owned())).await {
+        log::warn!(
             "Couldn't send message to channel id '{}' ({})",
             msg.channel_id,
             e
         );
+
+        log::info!("Restarting receiver task for channel id {}", msg.channel_id);
+        let new_tx = sender_entry().insert(tx_from_new_task()).value().clone();
+
+        if let Err(e) = new_tx.send((ctx.to_owned(), msg.to_owned())).await {
+            log::error!(
+                "Couldn't send message after task restart for channel id '{}' ({})",
+                msg.channel_id,
+                e,
+            );
+        }
     }
 
     Ok(())
