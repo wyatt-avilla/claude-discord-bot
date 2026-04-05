@@ -1,7 +1,8 @@
-use super::handler::{ErrorReply, ResponseTrigger};
+use super::handler::ResponseTrigger;
 use crate::claude;
 use crate::database::Record;
 use crate::discord::MessageContext;
+use crate::discord::error_reply::ErrorReply;
 
 pub enum ResponseIntent<'a> {
     ShouldNotRespond,
@@ -56,12 +57,12 @@ pub fn classify_response<'a>(
 
 #[cfg(test)]
 mod tests {
-    use super::super::handler::ErrorReply;
     use super::super::handler::ResponseTrigger;
     use super::ResponseIntent;
     use super::classify_response;
     use crate::database::Record;
     use crate::discord::MockMessageContext;
+    use crate::discord::error_reply::ErrorReply;
 
     #[test]
     fn authored_by_bot_no_response() {

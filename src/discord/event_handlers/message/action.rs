@@ -1,8 +1,8 @@
 use crate::claude;
 
-use super::handler::ErrorReply;
 use crate::discord::MessageContext;
 use crate::discord::command::CommandError;
+use crate::discord::error_reply::ErrorReply;
 
 enum ChannelAction {
     ErrorReply(ErrorReply),
@@ -107,9 +107,9 @@ pub async fn respond_with_claude_action(
 
 #[cfg(test)]
 mod tests {
-    use super::super::handler::ErrorReply;
     use super::ChannelAction;
     use crate::discord::MockMessageContext;
+    use crate::discord::error_reply::ErrorReply;
     use crate::{
         claude::{ClaudeError, Response, StopReason, Usage},
         discord::event_handlers::message::action::channel_action_from_claude_response,

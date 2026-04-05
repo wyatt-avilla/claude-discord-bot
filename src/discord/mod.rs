@@ -1,5 +1,6 @@
 mod client;
 mod command;
+mod error_reply;
 mod event_handlers;
 mod message;
 mod message_context;
