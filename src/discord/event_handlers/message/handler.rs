@@ -1,11 +1,11 @@
 use crate::database::Record;
 
-use super::message_context::{MessageContext, SerenityMessageContext};
 use super::response_intent::{ResponseIntent, classify_response};
 use crate::claude;
 use crate::database;
 use crate::discord::client::CustomData;
 use crate::discord::command::CommandError;
+use crate::discord::{MessageContext, SerenityMessageContext};
 use poise::serenity_prelude::{self as serenity};
 use rand::Rng;
 use tokio::sync::mpsc;
@@ -193,9 +193,9 @@ pub async fn handle_message(
 
 #[cfg(test)]
 mod tests {
-    use super::super::message_context::MockMessageContext;
     use super::ResponseTrigger;
     use super::response_trigger;
+    use crate::discord::MockMessageContext;
 
     fn mentioned_message() -> MockMessageContext {
         let mut msg = MockMessageContext::new();

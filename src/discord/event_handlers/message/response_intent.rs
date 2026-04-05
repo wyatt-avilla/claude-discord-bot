@@ -1,7 +1,7 @@
 use super::handler::{ErrorReply, ResponseTrigger};
-use super::message_context::MessageContext;
 use crate::claude;
 use crate::database::Record;
+use crate::discord::MessageContext;
 
 pub enum ResponseIntent<'a> {
     ShouldNotRespond,
@@ -31,6 +31,7 @@ pub fn classify_response<'a>(
         };
     }
 
+    // TODO: move this to sender thread basically
     if !message.in_active_channel(server_config) {
         return if mentioned {
             ResponseIntent::ErrorReplyWith(ErrorReply::InactiveChannel)
@@ -57,10 +58,10 @@ pub fn classify_response<'a>(
 mod tests {
     use super::super::handler::ErrorReply;
     use super::super::handler::ResponseTrigger;
-    use super::super::message_context::MockMessageContext;
     use super::ResponseIntent;
     use super::classify_response;
     use crate::database::Record;
+    use crate::discord::MockMessageContext;
 
     #[test]
     fn authored_by_bot_no_response() {

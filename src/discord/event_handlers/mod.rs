@@ -4,7 +4,7 @@ use poise::serenity_prelude as serenity;
 
 mod message;
 
-pub use super::event_handlers::message::{MessageContext, SerenityMessageContext};
+pub use crate::discord::{MessageContext, SerenityMessageContext};
 
 pub async fn handle_event(
     ctx: &serenity::Context,
