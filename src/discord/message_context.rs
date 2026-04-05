@@ -20,6 +20,7 @@ pub trait MessageContext {
     fn channel_id(&self) -> serenity::ChannelId;
     async fn message_history(&self) -> Result<Vec<serenity::Message>, CommandError>;
     async fn error_reply(&self, reply: ErrorReply) -> Result<(), CommandError>;
+    async fn get_claude_messages(&self) -> Result<Vec<claude::Message>, CommandError>;
 }
 
 #[derive(Clone)]
@@ -91,5 +92,14 @@ impl MessageContext for SerenityMessageContext {
             .reply(&self.context, reply.pretty_str())
             .await
             .map(|_| ())?)
+    }
+
+    async fn get_claude_messages(&self) -> Result<Vec<claude::Message>, CommandError> {
+        Ok(self
+            .message_history()
+            .await?
+            .iter()
+            .flat_map(|m| claude::Message::from(&m, &self.context))
+            .collect_vec())
     }
 }

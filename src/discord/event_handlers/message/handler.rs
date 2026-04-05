@@ -42,7 +42,7 @@ async fn handler_task(
     id: serenity::ChannelId,
     db: database::Client,
     claude: claude::Client,
-    mut rx: mpsc::Receiver<SerenityMessageContext>,
+    mut rx: mpsc::Receiver<impl MessageContext>,
 ) {
     while let Some(message_context) = rx.recv().await {
         let Some(Ok(server_config)) = message_context
@@ -72,21 +72,20 @@ async fn handler_task(
                 }
             }
             ResponseIntent::ShouldRespondWith { api_key, model } => {
-                let Ok(history) = message_context.message_history().await else {
-                    log::error!("Unable to get history in channel id {id}");
-                    break;
+                let msgs = match message_context.get_claude_messages().await {
+                    Ok(msgs) => msgs,
+                    Err(e) => {
+                        log::error!("Unable to retrieve message history in channel id {id} ({e})");
+                        break;
+                    }
                 };
-
-                let (ctx, _) = message_context.clone().into_inner(); // :(
-
-                let messages = claude::Message::vec_from(&history, &ctx);
 
                 if let Err(e) = super::action::respond_with_claude_action(
                     message_context,
                     &claude,
                     api_key,
                     model.clone(),
-                    messages,
+                    msgs,
                 )
                 .await
                 {
