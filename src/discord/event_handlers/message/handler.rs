@@ -71,20 +71,18 @@ async fn handler_task(
     id: serenity::ChannelId,
     db: database::Client,
     claude: claude::Client,
-    mut rx: mpsc::Receiver<(serenity::Context, serenity::Message)>,
+    mut rx: mpsc::Receiver<SerenityMessageContext>,
 ) {
-    while let Some((ctx, msg)) = rx.recv().await {
-        let Some(Ok(server_config)) = msg.guild_id.map(|id| db.get_config(id.into())) else {
+    while let Some(message_context) = rx.recv().await {
+        let Some(Ok(server_config)) = message_context
+            .server_id()
+            .map(|id| db.get_config(id.into()))
+        else {
             log::error!(
                 "Couldn't get server config when trying to process message '{}'",
-                msg.content
+                message_context.content()
             );
             break;
-        };
-
-        let message_context = SerenityMessageContext {
-            context: &ctx,
-            message: &msg,
         };
 
         let Some(response_trigger) = response_trigger(
@@ -97,13 +95,14 @@ async fn handler_task(
         match classify_response(&response_trigger, &message_context, &server_config) {
             ResponseIntent::ShouldNotRespond => (),
             ResponseIntent::ErrorReplyWith(reply) => {
+                let (ctx, msg) = message_context.into_inner();
                 if msg.reply(ctx, reply.pretty_str()).await.is_err() {
                     log::error!("Unable to reply in channel id {id}");
                     break;
                 }
             }
             ResponseIntent::ShouldRespondWith { api_key, model } => {
-                let Ok(history) = get_message_history(&ctx, &msg).await else {
+                let Ok(history) = message_context.message_history().await else {
                     log::error!("Unable to get history in channel id {id}");
                     break;
                 };
