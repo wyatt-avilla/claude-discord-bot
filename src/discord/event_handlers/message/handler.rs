@@ -65,8 +65,7 @@ async fn handler_task(
         match classify_response(&response_trigger, &message_context, &server_config) {
             ResponseIntent::ShouldNotRespond => (),
             ResponseIntent::ErrorReplyWith(reply) => {
-                let (ctx, msg) = message_context.into_inner();
-                if msg.reply(ctx, reply.pretty_str()).await.is_err() {
+                if message_context.error_reply(reply).await.is_err() {
                     log::error!("Unable to reply in channel id {id}");
                     break;
                 }

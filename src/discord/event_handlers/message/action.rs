@@ -81,8 +81,7 @@ pub async fn respond_with_claude_action(
     ) {
         None => Ok(()),
         Some(ChannelAction::ErrorReply(reply)) => {
-            let (ctx, msg) = message_context.into_inner();
-            msg.reply(ctx, reply.pretty_str()).await?;
+            message_context.error_reply(reply).await?;
             Ok(())
         }
         Some(ChannelAction::ClaudeActions(actions)) => {

@@ -3,6 +3,7 @@ use itertools::Itertools;
 use mockall::{automock, predicate::*};
 
 use crate::claude;
+use crate::discord::error_reply::ErrorReply;
 use crate::{database::Record, discord::command::CommandError};
 use poise::serenity_prelude::{self as serenity, GetMessages};
 
@@ -18,6 +19,7 @@ pub trait MessageContext {
     fn server_id(&self) -> Option<serenity::GuildId>;
     fn channel_id(&self) -> serenity::ChannelId;
     async fn message_history(&self) -> Result<Vec<serenity::Message>, CommandError>;
+    async fn error_reply(&self, reply: ErrorReply) -> Result<(), CommandError>;
 }
 
 #[derive(Clone)]
@@ -81,5 +83,13 @@ impl MessageContext for SerenityMessageContext {
             )
             .rev()
             .collect_vec())
+    }
+
+    async fn error_reply(&self, reply: ErrorReply) -> Result<(), CommandError> {
+        Ok(self
+            .message
+            .reply(&self.context, reply.pretty_str())
+            .await
+            .map(|_| ())?)
     }
 }
