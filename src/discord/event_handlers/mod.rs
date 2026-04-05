@@ -4,6 +4,8 @@ use poise::serenity_prelude as serenity;
 
 mod message;
 
+pub use super::event_handlers::message::{MessageContext, SerenityMessageContext};
+
 pub async fn handle_event(
     ctx: &serenity::Context,
     event: &serenity::FullEvent,
@@ -15,7 +17,14 @@ pub async fn handle_event(
             log::info!("Logged in as {}", data_about_bot.user.name);
         }
         serenity::FullEvent::Message { new_message } => {
-            message::handle_message(ctx, new_message, custom_data).await?;
+            message::handle_message(
+                SerenityMessageContext {
+                    context: ctx.clone(),
+                    message: new_message.clone(),
+                },
+                custom_data,
+            )
+            .await?;
         }
         _ => {}
     }
