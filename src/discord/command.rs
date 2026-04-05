@@ -3,13 +3,11 @@ use std::num::NonZeroU64;
 use poise::serenity_prelude::{self as serenity, Mentionable};
 
 use crate::claude::Model;
-
-pub type CommandError = Box<dyn std::error::Error + Send + Sync>;
-type Context<'a> = poise::Context<'a, super::client::CustomData, CommandError>;
+use crate::discord::{CommandError, PoiseContext};
 
 /// Displays your server's config
 #[poise::command(slash_command)]
-pub async fn get_config(ctx: Context<'_>) -> Result<(), CommandError> {
+pub async fn get_config(ctx: PoiseContext<'_>) -> Result<(), CommandError> {
     let Some(guild_id) = ctx.guild_id() else {
         ctx.say("Couldn't get server id").await?;
         return Ok(());
@@ -31,7 +29,7 @@ pub async fn get_config(ctx: Context<'_>) -> Result<(), CommandError> {
 /// Sets the Claude API key
 #[poise::command(slash_command, required_permissions = "ADMINISTRATOR")]
 pub async fn set_api_key(
-    ctx: Context<'_>,
+    ctx: PoiseContext<'_>,
     #[description = "API key from the Anthropic console"] api_key: String,
 ) -> Result<(), CommandError> {
     let Some(guild_id) = ctx.guild_id() else {
@@ -49,7 +47,7 @@ pub async fn set_api_key(
 /// Sets the Claude Model
 #[poise::command(slash_command, required_permissions = "ADMINISTRATOR")]
 pub async fn set_model(
-    ctx: Context<'_>,
+    ctx: PoiseContext<'_>,
     #[description = "Model name"] model: Model,
 ) -> Result<(), CommandError> {
     let Some(guild_id) = ctx.guild_id() else {
@@ -68,7 +66,7 @@ pub async fn set_model(
 /// Sets the random interaction chance
 #[poise::command(slash_command, required_permissions = "ADMINISTRATOR")]
 pub async fn set_random_interaction_chance(
-    ctx: Context<'_>,
+    ctx: PoiseContext<'_>,
     #[description = "The `1/denominator` chance that Claude reacts on a per-message basis. Set to 0 to disable."]
     denominator: u64,
 ) -> Result<(), CommandError> {
@@ -96,7 +94,7 @@ pub async fn set_random_interaction_chance(
 /// Add a channel to the set of Claude's active channels
 #[poise::command(slash_command, required_permissions = "ADMINISTRATOR")]
 pub async fn add_active_channel(
-    ctx: Context<'_>,
+    ctx: PoiseContext<'_>,
     #[description = "The channel"]
     #[channel_types("Text")]
     channel: serenity::Channel,
@@ -123,7 +121,7 @@ pub async fn add_active_channel(
 /// Remove a channel from the set of Claude's active channels
 #[poise::command(slash_command, required_permissions = "ADMINISTRATOR")]
 pub async fn remove_active_channel(
-    ctx: Context<'_>,
+    ctx: PoiseContext<'_>,
     #[description = "The channel"]
     #[channel_types("Text")]
     channel: serenity::Channel,
@@ -149,7 +147,7 @@ pub async fn remove_active_channel(
 
 /// Clears the set of active channel IDs
 #[poise::command(slash_command, required_permissions = "ADMINISTRATOR")]
-pub async fn clear_active_channels(ctx: Context<'_>) -> Result<(), CommandError> {
+pub async fn clear_active_channels(ctx: PoiseContext<'_>) -> Result<(), CommandError> {
     let Some(guild_id) = ctx.guild_id() else {
         ctx.say("Couldn't get server id").await?;
         return Ok(());

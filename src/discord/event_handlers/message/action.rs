@@ -1,7 +1,7 @@
 use crate::claude;
 
+use crate::discord::CommandError;
 use crate::discord::MessageContext;
-use crate::discord::command::CommandError;
 use crate::discord::error_reply::ErrorReply;
 
 enum ChannelAction {

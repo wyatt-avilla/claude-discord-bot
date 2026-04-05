@@ -26,3 +26,6 @@ thiserror = "2.0.12"
 tokio = { version = "1.47.1", features = ["full"] }
 tracing = "0.1.41"
 tracing-subscriber = "0.3.19"
+
+[dev-dependencies]
+tempfile = "3.27.0"

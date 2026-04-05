@@ -4,11 +4,12 @@ use mockall::{automock, predicate::*};
 
 use crate::claude;
 use crate::discord::error_reply::ErrorReply;
-use crate::{database::Record, discord::command::CommandError};
-use poise::serenity_prelude::{self as serenity, GetMessages};
+use crate::{database::Record, discord::CommandError};
+use poise::serenity_prelude::{self as serenity, GetMessages, async_trait};
 
 #[cfg_attr(test, automock)]
-pub trait MessageContext {
+#[async_trait]
+pub trait MessageContext: Clone + Sync + Send {
     fn into_inner(self) -> (serenity::Context, serenity::Message);
     fn authored_by_bot(&self) -> bool;
     fn is_reply(&self) -> bool;
@@ -19,6 +20,7 @@ pub trait MessageContext {
     fn server_id(&self) -> Option<serenity::GuildId>;
     fn channel_id(&self) -> serenity::ChannelId;
     async fn message_history(&self) -> Result<Vec<serenity::Message>, CommandError>;
+
     async fn error_reply(&self, reply: ErrorReply) -> Result<(), CommandError>;
     async fn get_claude_messages(&self) -> Result<Vec<claude::Message>, CommandError>;
 }
@@ -29,6 +31,14 @@ pub struct SerenityMessageContext {
     pub message: serenity::Message,
 }
 
+#[cfg(test)]
+impl Clone for MockMessageContext {
+    fn clone(&self) -> Self {
+        MockMessageContext::new()
+    }
+}
+
+#[async_trait]
 impl MessageContext for SerenityMessageContext {
     fn into_inner(self) -> (serenity::Context, serenity::Message) {
         (self.context, self.message)
