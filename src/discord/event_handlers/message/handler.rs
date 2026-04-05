@@ -5,6 +5,7 @@ use crate::claude;
 use crate::database;
 use crate::discord::client::CustomData;
 use crate::discord::command::CommandError;
+use crate::discord::error_reply::ErrorReply;
 use crate::discord::{MessageContext, SerenityMessageContext};
 use poise::serenity_prelude::{self as serenity};
 use rand::Rng;
@@ -121,7 +122,11 @@ pub async fn handle_message(
 
     let channel_id = msg_ctx.channel_id();
 
-    if !server_config.active_channel_ids.contains(&channel_id.get()) {
+    if !msg_ctx.in_active_channel(&server_config) {
+        if msg_ctx.mentioned() {
+            msg_ctx.error_reply(ErrorReply::InactiveChannel).await?;
+        }
+
         return Ok(());
     }
 
