@@ -108,13 +108,16 @@ async fn handler_task(
                     break;
                 };
 
+                let (ctx, _) = message_context.clone().into_inner(); // :(
+
+                let messages = claude::Message::vec_from(&history, &ctx);
+
                 if let Err(e) = super::action::respond_with_claude_action(
-                    &ctx,
-                    &msg,
+                    message_context,
                     &claude,
                     api_key,
                     model.clone(),
-                    claude::Message::vec_from(&history, &ctx),
+                    messages,
                 )
                 .await
                 {
