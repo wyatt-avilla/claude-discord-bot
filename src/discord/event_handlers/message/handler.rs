@@ -166,17 +166,8 @@ pub async fn handle_message<CTX: MessageContext + 'static>(
 
 #[cfg(test)]
 mod tests {
-    use super::ResponseTrigger;
-    use super::response_trigger;
+    use super::*;
     use crate::discord::MockMessageContext;
-
-    fn mentioned_message() -> MockMessageContext {
-        let mut msg = MockMessageContext::new();
-
-        msg.expect_mentioned().once().return_const(true);
-
-        msg
-    }
 
     fn message() -> MockMessageContext {
         let mut msg = MockMessageContext::new();
@@ -186,39 +177,89 @@ mod tests {
         msg
     }
 
-    #[test]
-    fn mention_triggers() {
-        let msg = mentioned_message();
+    fn mentioned_message() -> MockMessageContext {
+        let mut msg = MockMessageContext::new();
 
-        let resp = response_trigger(&msg, false);
+        msg.expect_mentioned().once().return_const(true);
 
-        assert!(matches!(resp, Some(ResponseTrigger::Mention)));
+        msg
     }
 
-    #[test]
-    fn random_triggers() {
-        let msg = message();
+    mod handle_message {
+        use super::*;
+        use crate::discord::client::CustomData;
+        use crate::discord::error_reply::ErrorReply;
 
-        let resp = response_trigger(&msg, true);
+        #[tokio::test]
+        async fn error_reply_if_mentioned_and_not_in_active_channel() {
+            let server_id = serenity::GuildId::from(1);
+            let channel_id = serenity::ChannelId::from(2);
 
-        assert!(matches!(resp, Some(ResponseTrigger::RandomChance)));
+            let mut msg = mentioned_message();
+            msg.expect_server_id().once().return_const(server_id);
+            msg.expect_channel_id().once().return_const(channel_id);
+            msg.expect_in_active_channel().once().return_const(false);
+            msg.expect_error_reply()
+                .once()
+                .withf(|r| matches!(r, ErrorReply::InactiveChannel))
+                .returning(|_| Ok(()));
+
+            let db = crate::database::Client::new(
+                &tempfile::NamedTempFile::new().unwrap().path().to_path_buf(),
+            )
+            .expect("db");
+            db.add_active_channel_id(server_id.into(), channel_id.into())
+                .unwrap();
+
+            let claude = crate::claude::Client::new();
+            let channel_senders = dashmap::DashMap::new();
+
+            let custom_data = CustomData {
+                db,
+                claude,
+                channel_senders,
+            };
+
+            assert!(handle_message(msg, &custom_data).await.is_ok());
+        }
     }
 
-    #[test]
-    fn neither_no_response() {
-        let msg = message();
+    mod response_trigger {
+        use super::*;
+        #[test]
+        fn mention_triggers() {
+            let msg = mentioned_message();
 
-        let resp = response_trigger(&msg, false);
+            let resp = response_trigger(&msg, false);
 
-        assert!(resp.is_none());
-    }
+            assert!(matches!(resp, Some(ResponseTrigger::Mention)));
+        }
 
-    #[test]
-    fn mention_takes_priority_over_random() {
-        let msg = mentioned_message();
+        #[test]
+        fn random_triggers() {
+            let msg = message();
 
-        let resp = response_trigger(&msg, true);
+            let resp = response_trigger(&msg, true);
 
-        assert!(matches!(resp, Some(ResponseTrigger::Mention)));
+            assert!(matches!(resp, Some(ResponseTrigger::RandomChance)));
+        }
+
+        #[test]
+        fn neither_no_response() {
+            let msg = message();
+
+            let resp = response_trigger(&msg, false);
+
+            assert!(resp.is_none());
+        }
+
+        #[test]
+        fn mention_takes_priority_over_random() {
+            let msg = mentioned_message();
+
+            let resp = response_trigger(&msg, true);
+
+            assert!(matches!(resp, Some(ResponseTrigger::Mention)));
+        }
     }
 }
