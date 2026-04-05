@@ -122,7 +122,7 @@ impl Message {
             .peekable()
     }
 
-    fn from(
+    pub fn from(
         discord_message: &serenity::Message,
         context: &serenity::Context,
     ) -> impl Iterator<Item = Self> {
@@ -159,15 +159,5 @@ impl Message {
             ]
             .into_iter()
         }
-    }
-
-    pub fn vec_from(
-        discord_messages: &[serenity::Message],
-        context: &serenity::Context,
-    ) -> Vec<Message> {
-        discord_messages
-            .iter()
-            .flat_map(|m| Message::from(m, context))
-            .collect()
     }
 }

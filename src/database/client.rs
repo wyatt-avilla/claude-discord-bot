@@ -1,5 +1,6 @@
 #![allow(clippy::result_large_err)]
 
+use std::sync::Arc;
 use std::{num::NonZeroU64, path::PathBuf};
 
 use crate::claude::Model;
@@ -32,8 +33,9 @@ pub enum DatabaseClientError {
     Commit(redb::CommitError),
 }
 
+#[derive(Clone)]
 pub struct Client {
-    db: Database,
+    db: Arc<Database>,
 }
 
 impl Client {
@@ -48,7 +50,7 @@ impl Client {
         }
         write_txn.commit().map_err(DatabaseClientError::Commit)?;
 
-        Ok(Self { db })
+        Ok(Self { db: Arc::new(db) })
     }
 
     pub fn get_config(&self, server_id: u64) -> Result<Record, DatabaseClientError> {

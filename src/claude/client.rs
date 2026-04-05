@@ -5,6 +5,7 @@ use super::system_prompt::SYSTEM_PROMPT;
 use super::tools::ToolDefinition;
 use crate::claude;
 use std::num::NonZeroU64;
+use std::sync::Arc;
 use thiserror::Error;
 
 use consts::ANTHROPIC_API_BASE_URL;
@@ -12,18 +13,18 @@ use consts::ANTHROPIC_API_BASE_URL;
 pub trait GetResponse {
     async fn get_response(
         &self,
-        msgs: Vec<claude::Message>,
+        msgs: &[claude::Message],
         api_key: &str,
-        model: claude::Model,
+        model: &claude::Model,
     ) -> Result<claude::Response, ClaudeError>;
 }
 
 impl GetResponse for Client {
     async fn get_response(
         &self,
-        msgs: Vec<claude::Message>,
+        msgs: &[claude::Message],
         api_key: &str,
-        model: claude::Model,
+        model: &claude::Model,
     ) -> Result<claude::Response, ClaudeError> {
         self.get_response(msgs, api_key, model).await
     }
@@ -37,12 +38,13 @@ pub enum ClaudeError {
     Parse(reqwest::Error),
 }
 
+#[derive(Clone)]
 pub struct Client {
     http: reqwest::Client,
-    system_prompt: String,
-    anthropic_version: String,
+    system_prompt: Arc<String>,
+    anthropic_version: Arc<String>,
     max_tokens: NonZeroU64,
-    tools: Vec<ToolDefinition>,
+    tools: Arc<Vec<ToolDefinition>>,
 }
 
 impl Client {
@@ -54,22 +56,22 @@ impl Client {
 
     pub async fn get_response(
         &self,
-        msgs: Vec<claude::Message>,
+        msgs: &[claude::Message],
         api_key: &str,
-        model: Model,
+        model: &Model,
     ) -> Result<Response, ClaudeError> {
         let request = super::Request::new(
             model,
-            self.system_prompt.clone(),
+            &self.system_prompt,
             self.max_tokens,
-            self.tools.clone(),
+            &self.tools,
             msgs,
         );
 
         self.http
             .post(format!("{ANTHROPIC_API_BASE_URL}/messages"))
             .header("x-api-key", api_key)
-            .header("anthropic-version", self.anthropic_version.clone())
+            .header("anthropic-version", self.anthropic_version.to_string())
             .json(&request)
             .send()
             .await
@@ -84,10 +86,10 @@ impl Default for Client {
     fn default() -> Self {
         Self {
             http: reqwest::Client::new(),
-            anthropic_version: String::from(consts::ANTHROPIC_API_VERSION),
+            anthropic_version: consts::ANTHROPIC_API_VERSION.to_string().into(),
             max_tokens: NonZeroU64::new(2048).unwrap(),
-            system_prompt: SYSTEM_PROMPT.to_string(),
-            tools: ToolDefinition::get_tools(),
+            system_prompt: SYSTEM_PROMPT.to_string().into(),
+            tools: ToolDefinition::get_tools().into(),
         }
     }
 }

@@ -1,9 +1,8 @@
 use crate::claude;
 
-use super::handler::ErrorReply;
-use super::message_context::{MessageContext, SerenityMessageContext};
+use crate::discord::MessageContext;
 use crate::discord::command::CommandError;
-use poise::serenity_prelude as serenity;
+use crate::discord::error_reply::ErrorReply;
 
 enum ChannelAction {
     ErrorReply(ErrorReply),
@@ -62,18 +61,12 @@ fn channel_action_from_claude_response(
 }
 
 pub async fn respond_with_claude_action(
-    ctx: &serenity::Context,
-    msg: &serenity::Message,
+    message_context: impl MessageContext,
     claude: &impl claude::GetResponse,
     api_key: &str,
     model: claude::Model,
     messages: Vec<claude::Message>,
 ) -> Result<(), CommandError> {
-    let message_context = SerenityMessageContext {
-        message: msg,
-        context: ctx,
-    };
-
     let mentioned = message_context.mentioned();
 
     let _typing = if mentioned {
@@ -84,21 +77,22 @@ pub async fn respond_with_claude_action(
 
     match channel_action_from_claude_response(
         &message_context,
-        claude.get_response(messages, api_key, model).await,
+        claude.get_response(&messages, api_key, &model).await,
     ) {
         None => Ok(()),
         Some(ChannelAction::ErrorReply(reply)) => {
-            msg.reply(ctx, reply.pretty_str()).await?;
+            message_context.error_reply(reply).await?;
             Ok(())
         }
         Some(ChannelAction::ClaudeActions(actions)) => {
+            let (ctx, msg) = message_context.into_inner();
             for action in actions {
                 match action {
                     claude::Action::SendMessage(txt) => {
-                        msg.channel_id.say(ctx, txt).await?;
+                        msg.channel_id.say(&ctx, txt).await?;
                     }
                     claude::Action::ReactToMessage(emoji) => {
-                        msg.react(ctx, emoji.clone()).await?;
+                        msg.react(&ctx, emoji.clone()).await?;
                     }
                     claude::Action::Pass => {
                         log::warn!("Claude chose not to respond to '{}'", msg.content);
@@ -112,9 +106,9 @@ pub async fn respond_with_claude_action(
 
 #[cfg(test)]
 mod tests {
-    use super::super::handler::ErrorReply;
-    use super::super::message_context::MockMessageContext;
     use super::ChannelAction;
+    use crate::discord::MockMessageContext;
+    use crate::discord::error_reply::ErrorReply;
     use crate::{
         claude::{ClaudeError, Response, StopReason, Usage},
         discord::event_handlers::message::action::channel_action_from_claude_response,

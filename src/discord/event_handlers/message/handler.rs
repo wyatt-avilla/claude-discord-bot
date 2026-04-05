@@ -1,64 +1,19 @@
-use crate::{claude, database::Record};
+use crate::database::Record;
 
-use super::message_context::{MessageContext, SerenityMessageContext};
 use super::response_intent::{ResponseIntent, classify_response};
+use crate::claude;
+use crate::database;
 use crate::discord::client::CustomData;
 use crate::discord::command::CommandError;
-use poise::serenity_prelude::{self as serenity, GetMessages};
+use crate::discord::error_reply::ErrorReply;
+use crate::discord::{MessageContext, SerenityMessageContext};
+use poise::serenity_prelude::{self as serenity};
 use rand::Rng;
+use tokio::sync::mpsc;
 
 pub enum ResponseTrigger {
     Mention,
     RandomChance,
-}
-
-pub enum ErrorReply {
-    CantSeeReplies,
-    InactiveChannel,
-    MissingAPIKey,
-    SomethingWentWrong,
-    MaxTokens,
-    TermsOfServiceViolation,
-}
-
-impl ErrorReply {
-    pub fn pretty_str(&self) -> &'static str {
-        match self {
-            ErrorReply::CantSeeReplies => {
-                "*Claude can't see replies. View the tracking issue* [here](<https://github.com/wyatt-avilla/claude-discord-bot/issues/18>)."
-            }
-            ErrorReply::InactiveChannel => {
-                "*Claude isn't configured to be active in this channel.*"
-            }
-            ErrorReply::MissingAPIKey => "*Anthropic API key not set.*",
-            ErrorReply::SomethingWentWrong => "*An error occurred while Claude tried to respond*",
-            ErrorReply::MaxTokens => {
-                "*Claude hit the max amount of tokens while trying to respond*"
-            }
-            ErrorReply::TermsOfServiceViolation => {
-                "*Content in this interaction violates Anthropic's terms of service*"
-            }
-        }
-    }
-}
-
-async fn get_message_history(
-    ctx: &serenity::Context,
-    msg: &serenity::Message,
-) -> Result<Vec<serenity::Message>, CommandError> {
-    Ok(std::iter::once(msg.clone())
-        .chain(
-            msg.channel_id
-                .messages(
-                    ctx,
-                    GetMessages::new()
-                        .before(msg.id)
-                        .limit(claude::MESSAGE_CONTEXT_LENGTH - 1),
-                )
-                .await?,
-        )
-        .rev()
-        .collect::<Vec<_>>())
 }
 
 fn random_interaction_triggered(server_config: &Record) -> bool {
@@ -83,57 +38,137 @@ fn response_trigger(
     None
 }
 
-pub async fn handle_message(
-    ctx: &serenity::Context,
-    msg: &serenity::Message,
-    custom_data: &CustomData,
-) -> Result<(), CommandError> {
-    let Some(Ok(server_config)) = msg.guild_id.map(|id| custom_data.db.get_config(id.into()))
-    else {
-        log::warn!(
-            "Couldn't get server config when trying to process message '{}'",
-            msg.content
-        );
-        return Ok(());
-    };
+async fn handler_task(
+    id: serenity::ChannelId,
+    db: database::Client,
+    claude: claude::Client,
+    mut rx: mpsc::Receiver<impl MessageContext>,
+) {
+    while let Some(message_context) = rx.recv().await {
+        let Some(Ok(server_config)) = message_context
+            .server_id()
+            .map(|id| db.get_config(id.into()))
+        else {
+            log::error!(
+                "Couldn't get server config when trying to process message '{}'",
+                message_context.content()
+            );
+            break;
+        };
 
-    let message_context = SerenityMessageContext {
-        context: ctx,
-        message: msg,
-    };
+        let Some(response_trigger) = response_trigger(
+            &message_context,
+            random_interaction_triggered(&server_config),
+        ) else {
+            continue;
+        };
 
-    let Some(response_trigger) = response_trigger(
-        &message_context,
-        random_interaction_triggered(&server_config),
-    ) else {
-        return Ok(());
-    };
+        match classify_response(&response_trigger, &message_context, &server_config) {
+            ResponseIntent::ShouldNotRespond => (),
+            ResponseIntent::ErrorReplyWith(reply) => {
+                if message_context.error_reply(reply).await.is_err() {
+                    log::error!("Unable to reply in channel id {id}");
+                    break;
+                }
+            }
+            ResponseIntent::ShouldRespondWith { api_key, model } => {
+                let msgs = match message_context.get_claude_messages().await {
+                    Ok(msgs) => msgs,
+                    Err(e) => {
+                        log::error!("Unable to retrieve message history in channel id {id} ({e})");
+                        break;
+                    }
+                };
 
-    match classify_response(&response_trigger, &message_context, &server_config) {
-        ResponseIntent::ShouldNotRespond => (),
-        ResponseIntent::ErrorReplyWith(reply) => {
-            msg.reply(ctx, reply.pretty_str()).await?;
-        }
-        ResponseIntent::ShouldRespondWith { api_key, model } => {
-            super::action::respond_with_claude_action(
-                ctx,
-                msg,
-                &custom_data.claude,
-                api_key,
-                model.clone(),
-                claude::Message::vec_from(&get_message_history(ctx, msg).await?, ctx),
-            )
-            .await?;
+                if let Err(e) = super::action::respond_with_claude_action(
+                    message_context,
+                    &claude,
+                    api_key,
+                    model.clone(),
+                    msgs,
+                )
+                .await
+                {
+                    log::error!("Unable respond with action in channel id {id} ({e})");
+                    break;
+                }
+            }
         }
     }
+
+    log::error!("Task for channel id {id} exiting...");
+}
+
+pub async fn handle_message(
+    msg_ctx: SerenityMessageContext,
+    custom_data: &CustomData,
+) -> Result<(), CommandError> {
+    let server_config = match msg_ctx
+        .server_id()
+        .map(|id| custom_data.db.get_config(id.into()))
+    {
+        Some(Ok(cfg)) => cfg,
+        None => return Ok(()),
+        Some(Err(e)) => {
+            log::error!(
+                "Couldn't get server config when trying to process message '{}' ({})",
+                msg_ctx.content(),
+                e,
+            );
+            return Ok(());
+        }
+    };
+
+    let channel_id = msg_ctx.channel_id();
+
+    if !msg_ctx.in_active_channel(&server_config) {
+        if msg_ctx.mentioned() {
+            msg_ctx.error_reply(ErrorReply::InactiveChannel).await?;
+        }
+
+        return Ok(());
+    }
+
+    let sender_entry = || custom_data.channel_senders.entry(channel_id);
+
+    let tx_from_new_task = || {
+        let (tx, rx) = mpsc::channel::<_>(128);
+        log::info!("Spawning receiver task for channel id {channel_id}");
+
+        let db = custom_data.db.clone();
+        let claude = custom_data.claude.clone();
+
+        tokio::spawn(async move { handler_task(channel_id, db, claude, rx).await });
+
+        tx
+    };
+
+    let tx = sender_entry()
+        .or_insert_with(tx_from_new_task)
+        .value()
+        .clone();
+
+    if let Err(e) = tx.send(msg_ctx.clone()).await {
+        log::warn!("Couldn't send message to channel id '{channel_id}' ({e})");
+
+        log::info!("Restarting receiver task for channel id {channel_id}");
+        let new_tx = sender_entry().insert(tx_from_new_task()).value().clone();
+
+        if let Err(e) = new_tx.send(msg_ctx).await {
+            log::error!(
+                "Couldn't send message after task restart for channel id '{channel_id}' ({e})"
+            );
+        }
+    }
+
     Ok(())
 }
 
 #[cfg(test)]
 mod tests {
-    use super::super::message_context::MockMessageContext;
     use super::ResponseTrigger;
     use super::response_trigger;
+    use crate::discord::MockMessageContext;
 
     fn mentioned_message() -> MockMessageContext {
         let mut msg = MockMessageContext::new();
