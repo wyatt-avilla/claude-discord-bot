@@ -1,13 +1,13 @@
-use super::event_handlers::SerenityMessageContext;
+use crate::discord::MessageContext;
 use dashmap::DashMap;
 use poise::{PrefixFrameworkOptions, serenity_prelude as serenity};
 use thiserror::Error;
 use tokio::sync::mpsc;
 
-pub struct CustomData {
+pub struct CustomData<CTX: MessageContext> {
     pub db: crate::database::Client,
     pub claude: crate::claude::Client,
-    pub channel_senders: DashMap<serenity::ChannelId, mpsc::Sender<SerenityMessageContext>>,
+    pub channel_senders: DashMap<serenity::ChannelId, mpsc::Sender<CTX>>,
 }
 
 pub struct Bot {

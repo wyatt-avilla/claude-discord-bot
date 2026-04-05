@@ -3,10 +3,10 @@ use crate::database::Record;
 use super::response_intent::{ResponseIntent, classify_response};
 use crate::claude;
 use crate::database;
+use crate::discord::CommandError;
+use crate::discord::MessageContext;
 use crate::discord::client::CustomData;
-use crate::discord::command::CommandError;
 use crate::discord::error_reply::ErrorReply;
-use crate::discord::{MessageContext, SerenityMessageContext};
 use poise::serenity_prelude::{self as serenity};
 use rand::Rng;
 use tokio::sync::mpsc;
@@ -99,9 +99,9 @@ async fn handler_task(
     log::error!("Task for channel id {id} exiting...");
 }
 
-pub async fn handle_message(
-    msg_ctx: SerenityMessageContext,
-    custom_data: &CustomData,
+pub async fn handle_message<CTX: MessageContext + 'static>(
+    msg_ctx: CTX,
+    custom_data: &CustomData<CTX>,
 ) -> Result<(), CommandError> {
     let server_config = match msg_ctx
         .server_id()

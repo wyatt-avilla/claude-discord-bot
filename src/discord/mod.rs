@@ -11,3 +11,7 @@ pub use message_context::{MessageContext, SerenityMessageContext};
 
 #[cfg(test)]
 pub use message_context::MockMessageContext;
+
+type CommandError = Box<dyn std::error::Error + Send + Sync>;
+type PoiseContext<'a> =
+    poise::Context<'a, client::CustomData<SerenityMessageContext>, CommandError>;

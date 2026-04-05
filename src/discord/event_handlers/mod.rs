@@ -1,16 +1,15 @@
+use super::SerenityMessageContext;
+use crate::discord::CommandError;
 use crate::discord::client::CustomData;
-use crate::discord::command::CommandError;
 use poise::serenity_prelude as serenity;
 
 mod message;
 
-pub use crate::discord::SerenityMessageContext;
-
 pub async fn handle_event(
     ctx: &serenity::Context,
     event: &serenity::FullEvent,
-    _framework: poise::FrameworkContext<'_, CustomData, CommandError>,
-    custom_data: &CustomData,
+    _framework: poise::FrameworkContext<'_, CustomData<SerenityMessageContext>, CommandError>,
+    custom_data: &CustomData<SerenityMessageContext>,
 ) -> Result<(), CommandError> {
     match event {
         serenity::FullEvent::Ready { data_about_bot, .. } => {
