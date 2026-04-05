@@ -99,7 +99,7 @@ impl MessageContext for SerenityMessageContext {
             .message_history()
             .await?
             .iter()
-            .flat_map(|m| claude::Message::from(&m, &self.context))
+            .flat_map(|m| claude::Message::from(m, &self.context))
             .collect_vec())
     }
 }
