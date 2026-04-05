@@ -45,25 +45,6 @@ impl ErrorReply {
     }
 }
 
-async fn get_message_history(
-    ctx: &serenity::Context,
-    msg: &serenity::Message,
-) -> Result<Vec<serenity::Message>, CommandError> {
-    Ok(std::iter::once(msg.clone())
-        .chain(
-            msg.channel_id
-                .messages(
-                    ctx,
-                    GetMessages::new()
-                        .before(msg.id)
-                        .limit(claude::MESSAGE_CONTEXT_LENGTH - 1),
-                )
-                .await?,
-        )
-        .rev()
-        .collect::<Vec<_>>())
-}
-
 fn random_interaction_triggered(server_config: &Record) -> bool {
     server_config
         .random_interaction_chance_denominator
