@@ -38,6 +38,8 @@ pub enum ClaudeError {
     RequestBuilder(AnthropicError),
     #[error("Couldn't send Request ({0})")]
     RequestFailed(AnthropicError),
+    #[error("Couldn't convert from Anthropic type ({0})")]
+    Conversion(String),
 }
 
 #[derive(Clone)]

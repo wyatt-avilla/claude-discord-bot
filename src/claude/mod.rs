@@ -9,9 +9,6 @@ mod tools;
 pub use client::{ClaudeError, Client, GetResponse};
 pub use conversation::Message;
 pub use model::Model;
-pub use response::{Action, Response, StopReason};
-
-#[cfg(test)]
-pub use response::Usage;
+pub use response::{Action, Response};
 
 pub use system_prompt::MESSAGE_CONTEXT_LENGTH;
