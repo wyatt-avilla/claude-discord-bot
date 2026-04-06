@@ -7,7 +7,7 @@ edition = "2024"
 api_key_tests = []
 
 [dependencies]
-anthropic = "0.0.8"
+anthropic = { git = "https://github.com/AbdelStark/anthropic-rs", version = "0.1.0" }
 anyhow = "1.0.98"
 bincode = { version = "2.0.1", features = ["serde"] }
 chrono = "0.4.41"
