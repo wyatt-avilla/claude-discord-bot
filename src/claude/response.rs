@@ -53,35 +53,37 @@ impl<'de> Deserialize<'de> for Action {
                     .ok_or_else(|| D::Error::missing_field("name"))?;
 
                 match name {
-                    tools::literals::SEND_MESSAGE_NAME => {
+                    tools::definitions::literals::SEND_MESSAGE_NAME => {
                         let message_content = value
                             .get("input")
                             .and_then(|input| {
-                                input.get(tools::literals::SEND_MESSAGE_CONTENT_ARGUMENT_NAME)
+                                input.get(
+                                    tools::definitions::literals::SEND_MESSAGE_CONTENT_ARGUMENT_NAME,
+                                )
                             })
                             .and_then(|v| v.as_str())
                             .ok_or_else(|| {
                                 D::Error::missing_field(concatcp!(
                                     "input",
                                     ".",
-                                    tools::literals::SEND_MESSAGE_CONTENT_ARGUMENT_NAME,
+                                    tools::definitions::literals::SEND_MESSAGE_CONTENT_ARGUMENT_NAME,
                                 ))
                             })?;
 
                         Ok(Action::SendMessage(message_content.to_string()))
                     }
-                    tools::literals::REACT_TO_MESSAGE_NAME => {
+                    tools::definitions::literals::REACT_TO_MESSAGE_NAME => {
                         let emoji = value
                             .get("input")
                             .and_then(|input| {
-                                input.get(tools::literals::REACT_TO_MESSAGE_EMOJI_ARGUMENT_NAME)
+                                input.get(tools::definitions::literals::REACT_TO_MESSAGE_EMOJI_ARGUMENT_NAME)
                             })
                             .and_then(|v| v.as_str())
                             .ok_or_else(|| {
                                 D::Error::missing_field(concatcp!(
                                     "input",
                                     ".",
-                                    tools::literals::REACT_TO_MESSAGE_EMOJI_ARGUMENT_NAME,
+                                    tools::definitions::literals::REACT_TO_MESSAGE_EMOJI_ARGUMENT_NAME,
                                 ))
                             })?;
 
@@ -89,13 +91,13 @@ impl<'de> Deserialize<'de> for Action {
                             emoji.to_string(),
                         )))
                     }
-                    tools::literals::SKIP_RESPONSE_NAME => Ok(Action::Pass),
+                    tools::definitions::literals::SKIP_RESPONSE_NAME => Ok(Action::Pass),
                     _ => Err(D::Error::unknown_variant(
                         name,
                         &[
-                            tools::literals::SEND_MESSAGE_NAME,
-                            tools::literals::REACT_TO_MESSAGE_NAME,
-                            tools::literals::SKIP_RESPONSE_NAME,
+                            tools::definitions::literals::SEND_MESSAGE_NAME,
+                            tools::definitions::literals::REACT_TO_MESSAGE_NAME,
+                            tools::definitions::literals::SKIP_RESPONSE_NAME,
                         ],
                     )),
                 }
