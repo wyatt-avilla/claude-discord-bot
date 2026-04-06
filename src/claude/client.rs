@@ -1,15 +1,14 @@
-use super::consts;
 use super::model::Model;
 use super::response::Response;
 use super::system_prompt::SYSTEM_PROMPT;
 use super::tools;
 use crate::claude;
+use anthropic::AnthropicError;
+use anthropic::types::Message as AnthropicMessage;
+use anthropic::types::SystemPrompt;
 use anthropic::types::Tool;
-use std::num::NonZeroU64;
-use std::sync::Arc;
+use std::num::NonZeroU32;
 use thiserror::Error;
-
-use consts::ANTHROPIC_API_BASE_URL;
 
 pub trait GetResponse {
     async fn get_response(
@@ -27,25 +26,25 @@ impl GetResponse for Client {
         api_key: &str,
         model: &claude::Model,
     ) -> Result<claude::Response, ClaudeError> {
-        self.get_response(msgs, api_key, model).await
+        todo!("Convert `GetResponse` to anthropic types")
     }
 }
 
 #[derive(Debug, Error)]
 pub enum ClaudeError {
-    #[error("Couldn't send HTTP request ({0})")]
-    Http(reqwest::Error),
-    #[error("Couldn't deserialize response ({0})")]
-    Parse(reqwest::Error),
+    #[error("Couldn't build Client ({0})")]
+    ClientBuilder(AnthropicError),
+    #[error("Couldn't build Request ({0})")]
+    RequestBuilder(AnthropicError),
+    #[error("Couldn't send Request ({0})")]
+    RequestFailed(AnthropicError),
 }
 
 #[derive(Clone)]
 pub struct Client {
-    http: reqwest::Client,
-    system_prompt: Arc<String>,
-    anthropic_version: Arc<String>,
-    max_tokens: NonZeroU64,
-    tools: Arc<Vec<Tool>>,
+    system_prompt: SystemPrompt,
+    max_tokens: NonZeroU32,
+    tools: Vec<Tool>,
 }
 
 impl Client {
@@ -57,40 +56,39 @@ impl Client {
 
     pub async fn get_response(
         &self,
-        msgs: &[claude::Message],
+        messages: &[AnthropicMessage],
         api_key: &str,
         model: &Model,
     ) -> Result<Response, ClaudeError> {
-        let request = super::Request::new(
-            model,
-            &self.system_prompt,
-            self.max_tokens,
-            &self.tools,
-            msgs,
-        );
+        let client = anthropic::ClientBuilder::new()
+            .api_key(api_key)
+            .build()
+            .map_err(ClaudeError::ClientBuilder)?;
 
-        self.http
-            .post(format!("{ANTHROPIC_API_BASE_URL}/messages"))
-            .header("x-api-key", api_key)
-            .header("anthropic-version", self.anthropic_version.to_string())
-            .json(&request)
-            .send()
+        let request = anthropic::types::MessagesRequestBuilder::new(
+            model.id(),
+            messages.into(),
+            self.max_tokens.into(),
+        )
+        .system(self.system_prompt.clone())
+        .tools(self.tools.clone())
+        .build()
+        .map_err(ClaudeError::RequestBuilder)?;
+
+        Ok(client
+            .messages(request)
             .await
-            .map_err(ClaudeError::Http)?
-            .json()
-            .await
-            .map_err(ClaudeError::Parse)
+            .map_err(ClaudeError::RequestFailed)?
+            .into())
     }
 }
 
 impl Default for Client {
     fn default() -> Self {
         Self {
-            http: reqwest::Client::new(),
-            anthropic_version: consts::ANTHROPIC_API_VERSION.to_string().into(),
-            max_tokens: NonZeroU64::new(2048).unwrap(),
-            system_prompt: SYSTEM_PROMPT.to_string().into(),
-            tools: tools::get_tools().into(),
+            max_tokens: NonZeroU32::new(2048).unwrap(),
+            system_prompt: SystemPrompt::Text(SYSTEM_PROMPT.to_string()),
+            tools: tools::get_tools(),
         }
     }
 }

@@ -4,6 +4,12 @@ use serde::Deserialize;
 
 use poise::serenity_prelude as serenity;
 
+impl From<anthropic::types::MessagesResponse> for Response {
+    fn from(value: anthropic::types::MessagesResponse) -> Self {
+        todo!("Implement conversion from anthropic response to claude response")
+    }
+}
+
 #[derive(Debug, Eq, PartialEq)]
 pub enum Action {
     SendMessage(String),
