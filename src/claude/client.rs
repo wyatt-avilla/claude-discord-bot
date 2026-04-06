@@ -2,8 +2,9 @@ use super::consts;
 use super::model::Model;
 use super::response::Response;
 use super::system_prompt::SYSTEM_PROMPT;
-use super::tools::ToolDefinition;
+use super::tools;
 use crate::claude;
+use anthropic::types::Tool;
 use std::num::NonZeroU64;
 use std::sync::Arc;
 use thiserror::Error;
@@ -44,7 +45,7 @@ pub struct Client {
     system_prompt: Arc<String>,
     anthropic_version: Arc<String>,
     max_tokens: NonZeroU64,
-    tools: Arc<Vec<ToolDefinition>>,
+    tools: Arc<Vec<Tool>>,
 }
 
 impl Client {
@@ -89,7 +90,7 @@ impl Default for Client {
             anthropic_version: consts::ANTHROPIC_API_VERSION.to_string().into(),
             max_tokens: NonZeroU64::new(2048).unwrap(),
             system_prompt: SYSTEM_PROMPT.to_string().into(),
-            tools: ToolDefinition::get_tools().into(),
+            tools: tools::get_tools().into(),
         }
     }
 }

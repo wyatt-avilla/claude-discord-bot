@@ -1,6 +1,6 @@
 use super::Message;
-use super::ToolDefinition;
 use super::model::Model;
+use anthropic::types::Tool;
 use serde::Serialize;
 use serde_json::Value;
 use serde_json::json;
@@ -12,7 +12,7 @@ pub struct Request<'a> {
     system: &'a str,
     max_tokens: NonZeroU64,
     tool_choice: Value,
-    tools: &'a Vec<ToolDefinition>,
+    tools: &'a Vec<Tool>,
     messages: &'a [Message],
 }
 
@@ -21,7 +21,7 @@ impl<'a> Request<'a> {
         model: &'a Model,
         system_prompt: &'a str,
         max_tokens: NonZeroU64,
-        tools: &'a Vec<ToolDefinition>,
+        tools: &'a Vec<Tool>,
         messages: &'a [Message],
     ) -> Self {
         Self {
@@ -43,12 +43,12 @@ mod tests {
     use super::Message;
     use super::Model;
     use super::Request;
-    use super::ToolDefinition;
     use crate::claude::conversation::{Content, ContentBlock, ImageBlock, Role, TextBlock};
+    use crate::claude::tools;
 
     #[test]
     fn one_tool_one_message() {
-        let skip_response_tool = ToolDefinition::get_tools().get(2).unwrap().clone();
+        let skip_response_tool = tools::get_tools().get(2).unwrap().clone();
 
         let request = serde_json::to_value(Request {
             model: &Model::Sonnet4,
@@ -92,7 +92,7 @@ mod tests {
 
     #[test]
     fn two_tools_two_messages() {
-        let message_and_react_tools = ToolDefinition::get_tools().into_iter().take(2);
+        let message_and_react_tools = tools::get_tools().into_iter().take(2);
 
         let request = serde_json::to_value(Request {
             model: &Model::Opus46,
