@@ -17,10 +17,10 @@ pub struct Bot {
 #[derive(Debug, Error)]
 pub enum DiscordBotError {
     #[error("Couldn't create client ({0})")]
-    Creation(serenity::Error),
+    Creation(Box<serenity::Error>),
 
     #[error("Couldn't start client ({0})")]
-    Start(serenity::Error),
+    Start(Box<serenity::Error>),
 }
 
 impl Bot {
@@ -69,12 +69,15 @@ impl Bot {
         let client = serenity::ClientBuilder::new(discord_token, intents)
             .framework(framework)
             .await
-            .map_err(DiscordBotError::Creation)?;
+            .map_err(|error| DiscordBotError::Creation(Box::new(error)))?;
 
         Ok(Self { client })
     }
 
     pub async fn run(&mut self) -> Result<(), DiscordBotError> {
-        self.client.start().await.map_err(DiscordBotError::Start)
+        self.client
+            .start()
+            .await
+            .map_err(|error| DiscordBotError::Start(Box::new(error)))
     }
 }

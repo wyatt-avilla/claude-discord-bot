@@ -4,7 +4,7 @@ use poise::ChoiceParameter;
 use serde::{Deserialize, Serialize};
 use std::fmt::Display;
 
-#[derive(Clone, Debug, ValueEnum, Deserialize, Encode, Decode, ChoiceParameter)]
+#[derive(Clone, Debug, Default, ValueEnum, Deserialize, Encode, Decode, ChoiceParameter)]
 pub enum Model {
     #[name = "Opus 4.6"]
     #[value(name = "opus-4.6")]
@@ -32,6 +32,7 @@ pub enum Model {
     Opus4,
     #[name = "Sonnet 4"]
     #[value(name = "sonnet-4")]
+    #[default]
     Sonnet4,
 }
 
@@ -67,12 +68,6 @@ impl Model {
             Model::Opus4 => "Opus 4",
             Model::Sonnet4 => "Sonnet 4",
         })
-    }
-}
-
-impl Default for Model {
-    fn default() -> Self {
-        Self::Sonnet4
     }
 }
 

@@ -116,7 +116,7 @@ impl Message {
             .iter()
             .filter(|r| r.me)
             .filter_map(|r| match &r.reaction_type {
-                ReactionType::Unicode(s) => Some(s.to_string()),
+                ReactionType::Unicode(s) => Some(s.clone()),
                 _ => None,
             })
             .peekable()
