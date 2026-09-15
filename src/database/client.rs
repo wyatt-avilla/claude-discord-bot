@@ -1,5 +1,3 @@
-#![allow(clippy::result_large_err)]
-
 use std::sync::Arc;
 use std::{num::NonZeroU64, path::PathBuf};
 
@@ -15,22 +13,22 @@ const TABLE: TableDefinition<u64, Record> = TableDefinition::new("claude_discord
 #[derive(Debug, Error)]
 pub enum DatabaseClientError {
     #[error("Couldn't create table ({0})")]
-    FileCreation(redb::DatabaseError),
+    FileCreation(Box<redb::DatabaseError>),
 
     #[error("Couldn't perform transaction ({0})")]
-    Transaction(redb::TransactionError),
+    Transaction(Box<redb::TransactionError>),
 
     #[error("Couldn't open table ({0})")]
-    TableOpen(redb::TableError),
+    TableOpen(Box<redb::TableError>),
 
     #[error("Couldn't insert ({0})")]
-    Write(redb::StorageError),
+    Write(Box<redb::StorageError>),
 
     #[error("Couldn't read ({0})")]
-    Read(redb::StorageError),
+    Read(Box<redb::StorageError>),
 
     #[error("Couldn't commit transaction ({0})")]
-    Commit(redb::CommitError),
+    Commit(Box<redb::CommitError>),
 }
 
 #[derive(Clone)]
@@ -40,15 +38,20 @@ pub struct Client {
 
 impl Client {
     pub fn new(db_path: &PathBuf) -> Result<Self, DatabaseClientError> {
-        let db = redb::Database::create(db_path).map_err(DatabaseClientError::FileCreation)?;
+        let db = redb::Database::create(db_path)
+            .map_err(|error| DatabaseClientError::FileCreation(Box::new(error)))?;
 
-        let write_txn = db.begin_write().map_err(DatabaseClientError::Transaction)?;
+        let write_txn = db
+            .begin_write()
+            .map_err(|error| DatabaseClientError::Transaction(Box::new(error)))?;
         {
             let _table = write_txn
                 .open_table(TABLE)
-                .map_err(DatabaseClientError::TableOpen)?;
+                .map_err(|error| DatabaseClientError::TableOpen(Box::new(error)))?;
         }
-        write_txn.commit().map_err(DatabaseClientError::Commit)?;
+        write_txn
+            .commit()
+            .map_err(|error| DatabaseClientError::Commit(Box::new(error)))?;
 
         Ok(Self { db: Arc::new(db) })
     }
@@ -57,14 +60,14 @@ impl Client {
         let read_txn = self
             .db
             .begin_read()
-            .map_err(DatabaseClientError::Transaction)?;
+            .map_err(|error| DatabaseClientError::Transaction(Box::new(error)))?;
         let table = read_txn
             .open_table(TABLE)
-            .map_err(DatabaseClientError::TableOpen)?;
+            .map_err(|error| DatabaseClientError::TableOpen(Box::new(error)))?;
 
         Ok(table
             .get(server_id)
-            .map_err(DatabaseClientError::Read)?
+            .map_err(|error| DatabaseClientError::Read(Box::new(error)))?
             .map_or(Record::default(), |a| a.value()))
     }
 
@@ -127,23 +130,25 @@ impl Client {
         let write_txn = self
             .db
             .begin_write()
-            .map_err(DatabaseClientError::Transaction)?;
+            .map_err(|error| DatabaseClientError::Transaction(Box::new(error)))?;
         {
             let mut table = write_txn
                 .open_table(TABLE)
-                .map_err(DatabaseClientError::TableOpen)?;
+                .map_err(|error| DatabaseClientError::TableOpen(Box::new(error)))?;
 
             let mut config = table
                 .get(server_id)
-                .map_err(DatabaseClientError::Read)?
+                .map_err(|error| DatabaseClientError::Read(Box::new(error)))?
                 .map_or(Record::default(), |v| v.value());
             update_config(&mut config);
 
             table
                 .insert(server_id, config)
-                .map_err(DatabaseClientError::Write)?;
+                .map_err(|error| DatabaseClientError::Write(Box::new(error)))?;
         }
-        write_txn.commit().map_err(DatabaseClientError::Commit)?;
+        write_txn
+            .commit()
+            .map_err(|error| DatabaseClientError::Commit(Box::new(error)))?;
 
         Ok(())
     }
